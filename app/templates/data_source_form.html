@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% import "_controls.html" as ui %}
+{% block title %}{{ '编辑' if source else '新增' }}数据源{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>{{ '编辑' if source else '新增' }}数据源</h1></div><button class="button ghost" type="button" data-history-back data-fallback="{{ next_url }}">返回</button></div>
+<section class="panel form-panel">
+  <form method="post" action="{{ action }}" class="form-grid">
+    <input type="hidden" name="next" value="{{ next_url }}">
+    <label>名称<input name="name" required value="{{ source.name if source else '' }}"></label>
+    <label>类型<select name="category">{{ ui.options(schemas.PUBLIC_EVENT_CATEGORIES, source.category if source else '其他') }}</select></label>
+    <label class="wide">官网地址<input type="url" name="url" required value="{{ source.url if source else '' }}" placeholder="https://..."></label>
+    <label>自动刷新间隔（小时）<input type="number" name="refresh_hours" min="1" value="{{ source.refresh_hours if source else 24 }}"></label>
+    <div class="form-actions"><button class="button primary" type="submit">保存</button></div>
+  </form>
+</section>
+{% endblock %}

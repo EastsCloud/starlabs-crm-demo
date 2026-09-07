@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block title %}账号管理{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>账号管理</h1></div></div>
+{% if error %}<div class="notice">{{ error }}</div>{% endif %}
+
+<section class="panel account-panel">
+  <div class="section-head"><h2>管理员账号</h2></div>
+  <form method="post" action="/accounts" class="account-form account-admin-form">
+    <input type="hidden" name="user_id" value="{{ administrator.id }}">
+    <input type="hidden" name="kind" value="admin">
+    <label>账号<input name="username" value="{{ administrator.username }}" required maxlength="120" autocomplete="username"></label>
+    <label>新密码<input name="password" type="password" minlength="12" maxlength="1024" autocomplete="new-password" placeholder="留空则保持不变"></label>
+    <button class="button primary" type="submit">保存更改</button>
+  </form>
+</section>
+
+<section class="panel account-panel">
+  <div class="section-head"><h2>人员列表</h2><button class="button primary" type="button" data-show-account="add-person-row">新增人员</button></div>
+  <div class="account-table-wrap"><table id="person-table" class="account-table"><thead><tr><th>账号</th><th>密码</th><th class="operation-col">操作</th></tr></thead><tbody>
+    {% for user in personnel %}
+      {% set is_editing = editing and editing.id == user.id %}
+      <tr id="person-{{ user.id }}">
+        <td>
+          <span data-account-display {% if is_editing %}hidden{% endif %}>{{ user.username }}</span>
+          <input data-account-editor {% if not is_editing %}hidden disabled{% endif %} form="edit-person-{{ user.id }}" name="username" data-original-username="{{ user.username }}" value="{{ submitted.get('username', user.username) if is_editing and submitted is defined else user.username }}" required maxlength="120" autocomplete="off" aria-label="人员账号">
+        </td>
+        <td>
+          <span class="password-mask" data-account-display {% if is_editing %}hidden{% endif %}>••••••••</span>
+          <input data-account-editor {% if not is_editing %}hidden disabled{% endif %} form="edit-person-{{ user.id }}" name="password" type="password" minlength="12" maxlength="1024" autocomplete="new-password" placeholder="留空则保持不变" aria-label="人员新密码">
+        </td>
+        <td>
+          <button class="table-action" data-account-display {% if is_editing %}hidden{% endif %} type="button" data-edit-person="{{ user.id }}">编辑</button>
+          <form id="edit-person-{{ user.id }}" data-account-editor {% if not is_editing %}hidden{% endif %} method="post" action="/accounts">
+            <input type="hidden" name="user_id" value="{{ user.id }}"><input type="hidden" name="kind" value="person">
+            <button class="table-action" type="submit">保存</button>
+            <button class="table-action account-cancel" type="button" data-cancel-person="{{ user.id }}">取消</button>
+          </form>
+        </td>
+      </tr>
+    {% endfor %}
+    <tr id="add-person-row" class="account-edit-row" {% if not adding %}hidden{% endif %}>
+      <td><input form="add-person" name="username" value="{{ submitted.get('username', '') if adding and submitted is defined else '' }}" required maxlength="120" autocomplete="off" aria-label="新增人员账号"></td>
+      <td><input form="add-person" name="password" type="password" required minlength="12" maxlength="1024" autocomplete="new-password" aria-label="新增人员密码"></td>
+      <td><form id="add-person" method="post" action="/accounts"><input type="hidden" name="kind" value="person"><button class="table-action" type="submit">保存</button> <button class="table-action account-cancel" type="button" data-cancel-add>取消</button></form></td>
+    </tr>
+    {% if not personnel %}<tr id="person-empty" class="empty-row" {% if adding %}hidden{% endif %}><td colspan="3" class="empty">暂无人员</td></tr>{% endif %}
+  </tbody></table></div>
+</section>
+
+<section class="panel account-panel" id="operation-logs">
+  <div class="section-head"><h2>操作日志</h2></div>
+  <div class="audit-scroll"><table><thead><tr><th>时间</th><th>用户</th><th>操作</th><th>状态</th></tr></thead><tbody>
+  {% for log in logs %}<tr><td>{{ log.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td><td>{{ log.username }}</td><td>{{ log.action }}</td><td>{{ log.status }}</td></tr>{% endfor %}
+  </tbody></table></div>
+</section>
+<script>
+  function setPersonEditing(id, editing) {
+    const row = document.getElementById('person-' + id);
+    row.querySelectorAll('[data-account-display]').forEach(element => element.hidden = editing);
+    row.querySelectorAll('[data-account-editor]').forEach(element => {
+      element.hidden = !editing;
+      if (element.matches('input')) element.disabled = !editing;
+    });
+    if (editing) row.querySelector('input[name="username"]').focus({ preventScroll: true });
+    else {
+      document.getElementById('edit-person-' + id).reset();
+      const username = row.querySelector('input[name="username"]');
+      username.value = username.dataset.originalUsername;
+    }
+  }
+  document.querySelectorAll('[data-edit-person]').forEach(button => {
+    button.addEventListener('click', () => setPersonEditing(button.dataset.editPerson, true));
+  });
+  document.querySelectorAll('[data-cancel-person]').forEach(button => {
+    button.addEventListener('click', () => setPersonEditing(button.dataset.cancelPerson, false));
+  });
+  const addRow = document.getElementById('add-person-row');
+  const emptyRow = document.getElementById('person-empty');
+  document.querySelector('[data-show-account="add-person-row"]').addEventListener('click', () => {
+    addRow.hidden = false;
+    if (emptyRow) emptyRow.hidden = true;
+    addRow.querySelector('input').focus({ preventScroll: true });
+  });
+  document.querySelector('[data-cancel-add]').addEventListener('click', () => {
+    document.getElementById('add-person').reset();
+    addRow.querySelector('input[name="username"]').value = '';
+    addRow.hidden = true;
+    if (emptyRow) emptyRow.hidden = false;
+  });
+</script>
+{% endblock %}

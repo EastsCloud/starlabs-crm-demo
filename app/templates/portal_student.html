@@ -1,0 +1,30 @@
+{% import "_controls.html" as ui %}
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>{{ student.name }}</title>
+  <link rel="stylesheet" href="{{ url_for('static', path='/style.css') }}">
+</head>
+<body class="portal-body">
+<header class="portal-header">
+  <div><strong>{{ student.name }}</strong><span>{{ student.grade }}</span></div>
+  <nav>{% for key,label in [('basic','基本信息'),('applications','申请信息'),('courses','选课信息'),('exams','标化记录'),('tasks','任务')] %}<a class="{{ 'active' if section == key else '' }}" href="/portal/{{ student.portal_token }}/{{ key }}">{{ label }}</a>{% endfor %}</nav>
+</header>
+<main class="portal-content">
+{% if section == 'basic' %}
+  <h1>基本信息</h1><section class="panel"><div class="info-grid"><div><span>姓名</span><strong>{{ student.name }}</strong></div><div><span>年级</span><strong>{{ student.grade }}</strong></div><div><span>电话</span><strong>{{ student.phone or '-' }}</strong></div><div><span>出生日期</span><strong>{{ student.birth_date.strftime('%Y-%m-%d') if student.birth_date else '-' }}</strong></div><div class="span-2"><span>地址</span><strong>{{ student.address or '-' }}</strong></div><div class="span-2"><span>备注</span><strong>{{ student.notes or '-' }}</strong></div></div></section>
+{% elif section == 'applications' %}
+  <h1>申请信息</h1><section class="panel"><table><thead><tr><th>学校</th><th>国家</th><th>批次</th><th>状态</th><th>截止时间</th><th>网申情况</th><th>Portal情况</th><th>标化递送</th></tr></thead><tbody>{% for item in student.applications %}<tr><td>{{ item.program_name }}</td><td>{{ item.country or '-' }}</td><td>{{ item.batch or '-' }}</td><td>{{ ui.status_badge(item.status) }}</td><td>{{ item.deadline.strftime('%Y-%m-%d') if item.deadline else '-' }}</td><td>{{ ui.status_badge(item.form_status or item.online_application_status or 'WIP') }}</td><td>{{ item.portal_material_progress or item.portal_status or '0%' }}</td><td>{{ ui.status_badge(item.score_delivery_status or 'WIP') }}</td></tr>{% else %}<tr><td colspan="8" class="empty">暂无信息</td></tr>{% endfor %}</tbody></table></section>
+{% elif section == 'courses' %}
+  <h1>选课信息</h1><section class="panel"><table><thead><tr><th>学期</th><th>课程分类</th><th>名称</th><th>等级</th><th>成绩</th><th>学分</th></tr></thead><tbody>{% for item in student.courses %}<tr><td>{{ item.semester }}</td><td>{{ item.category }}</td><td>{{ item.name }}</td><td>{{ item.level }}</td><td>{{ item.grade }}</td><td>{{ item.credits }}</td></tr>{% else %}<tr><td colspan="6" class="empty">暂无信息</td></tr>{% endfor %}</tbody></table></section>
+{% elif section == 'exams' %}
+  <h1>标化记录</h1><section class="panel"><table><thead><tr><th>名称</th><th>日期</th><th>详细信息</th><th>总分</th><th>分项分数</th></tr></thead><tbody>{% for item in student.exams %}<tr><td>{{ item.exam_name }}</td><td>{{ item.exam_date.strftime('%Y-%m-%d') if item.exam_date else '-' }}</td><td>{{ exam_detail(item) }}</td><td>{{ item.total or item.score or '-' }}</td><td>{{ exam_component_scores(item) }}</td></tr>{% else %}<tr><td colspan="5" class="empty">暂无信息</td></tr>{% endfor %}</tbody></table></section>
+{% else %}
+  <h1>任务</h1><section class="panel"><table class="task-table"><thead><tr><th>任务</th><th>学生</th><th>类型</th><th>时间</th><th>状态</th><th>优先级</th></tr></thead><tbody>{% for item in student.tasks %}<tr class="{{ task_due_state(item) }}"><td>{{ item.title }}</td><td>{{ student.name }}</td><td>{{ item.category }}</td><td>{{ display_task_time(item) }} {{ ui.due_badge(task_due_state(item)) }}</td><td>{{ ui.status_badge(item.status) }}</td><td>{{ ui.status_badge(item.priority) }}</td></tr>{% else %}<tr><td colspan="6" class="empty">暂无任务</td></tr>{% endfor %}</tbody></table></section>
+{% endif %}
+</main>
+{% include "_session_timeout.html" %}
+</body>
+</html>

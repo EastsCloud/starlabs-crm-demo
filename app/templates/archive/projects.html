@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% import "_controls.html" as ui %}
+{% block title %}项目和活动{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>项目和活动</h1></div><a class="button primary" href="/projects/new">新增项目</a></div>
+<form class="filters" method="get">
+  <input type="search" name="q" value="{{ filters.q }}" placeholder="关键词搜索">
+  {{ ui.filter_actions(request) }}
+  {{ ui.student_select(students, filters.student_id) }}
+  <select name="project_type"><option value="">全部类型</option>{{ ui.options(schemas.PROJECT_TYPES, filters.project_type) }}</select>
+  <select name="status"><option value="">全部状态</option>{{ ui.options(schemas.PROJECT_STATUSES, filters.status) }}</select>
+</form>
+<section class="panel"><table><thead><tr><th>项目</th><th>学生</th><th>类型</th><th>状态</th><th>开始</th><th>结束</th><th>成果</th><th>优先级</th><th>操作</th></tr></thead><tbody>{% for item in rows %}
+<tr><td><a href="/projects/{{ item.id }}/edit">{{ item.project_name }}</a></td><td>{{ item.student.name }}</td><td>{{ item.project_type }}</td><td>{{ ui.status_badge(item.status) }}</td><td>{{ display_time(item.start_date, item.start_time_node) }}</td><td>{{ display_time(item.end_date, item.end_time_node) }}</td><td>{{ item.outcome }}</td><td>{{ ui.status_badge(item.risk_level) }}</td><td class="actions"><a href="/projects/{{ item.id }}/edit">编辑</a><form method="post" action="/projects/{{ item.id }}/delete" data-confirm="确认删除项目？"><button>删除</button></form></td></tr>
+{% else %}<tr><td colspan="9" class="empty">暂无项目</td></tr>{% endfor %}</tbody></table></section>
+{% endblock %}

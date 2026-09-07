@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}导入学生{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>导入学生</h1></div><a class="button" href="/import/template">下载学生导入模板</a></div>
+{% if result %}<section class="panel success-panel"><h2>导入完成</h2><p>新增学生 {{ result.students_created }}，更新学生 {{ result.students_updated }}，处理申请 {{ result.applications }}，处理标化记录 {{ result.exams }}；补充 {{ result.fields_filled }} 个空字段，覆盖 {{ result.fields_overwritten }} 个已有字段。</p></section>{% endif %}
+<section class="panel import-upload-panel">
+  <div class="section-head"><h2>选择一个或多个 Excel 文件</h2></div>
+  <form method="post" action="/import/preview" enctype="multipart/form-data" class="form-grid" data-loading="正在解析学生文件并生成预览…">
+    <label class="wide"><span class="form-help">提交后会先显示预览，确认后才写入数据库。工作表名称不影响导入。</span><input type="file" name="files" accept=".xlsx" multiple required></label>
+    <div class="form-actions"><button class="button primary" type="submit">解析并预览</button></div>
+  </form>
+</section>
+{% if preview %}<section class="panel">
+  <form method="post" action="/import/apply" class="import-preview-form" data-loading="正在导入勾选的学生信息…"><input type="hidden" name="token" value="{{ token }}"><input type="hidden" name="selection_mode" value="explicit">
+  <div class="section-head"><h2>导入预览</h2><button class="button primary" type="submit">导入勾选内容</button></div>
+  {% if preview.warnings %}<div class="notice">{{ preview.warnings|join('；') }}</div>{% endif %}
+  <p class="import-preview-summary">已解析 {{ preview.files }} 个文件，共识别 {{ preview.students|length }} 位学生。有 {{ preview.existing_count }} 位已有学生，将按勾选内容增加或覆盖信息。</p>
+  {% for row in preview.students %}{% set student_index = loop.index0 %}
+  <article class="import-student-card" data-import-group>
+    <div class="import-student-head"><label class="import-check"><input type="checkbox" name="selected" value="s{{ student_index }}:student" checked><strong>{{ row.name }}</strong>{% if row.existing %}<span class="badge blue">已有学生</span>{% endif %}</label><button class="button ghost small-button" type="button" data-toggle-import>取消全选</button></div>
+    <h3>基本信息</h3>
+    <div class="import-field-grid">{% for field, value in row.personal.items() %}<label class="import-line"><input type="checkbox" name="selected" value="s{{ student_index }}:p:{{ field }}" checked><span>{{ personal_labels[field] }}</span><strong>{{ value }}</strong></label>{% else %}<span class="muted">无基本信息</span>{% endfor %}</div>
+    <h3>申请信息</h3>
+    {% for application in row.applications %}<label class="import-record"><input type="checkbox" name="selected" value="s{{ student_index }}:a:{{ loop.index0 }}" checked><span class="import-record-content">{% for field, label in application_preview_fields %}{% if application.get(field) %}<span><em>{{ label }}</em>{{ application.get(field) }}</span>{% endif %}{% endfor %}</span></label>{% else %}<p class="muted">无申请信息</p>{% endfor %}
+    <h3>标化记录</h3>
+    {% for exam in row.exams %}<label class="import-record"><input type="checkbox" name="selected" value="s{{ student_index }}:e:{{ loop.index0 }}" checked><span class="import-record-content">{% for field, label in exam_preview_fields %}{% if exam.get(field) %}<span><em>{{ label }}</em>{{ exam.get(field) }}</span>{% endif %}{% endfor %}</span></label>{% else %}<p class="muted">无标化记录</p>{% endfor %}
+  </article>
+  {% endfor %}
+  </form>
+</section>{% endif %}
+{% endblock %}

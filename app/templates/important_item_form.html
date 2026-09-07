@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% import "_controls.html" as ui %}
+{% block title %}{{ '编辑' if item else '新增' }}重要事项{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>{{ '编辑' if item else '新增' }}重要事项</h1></div><button class="button ghost" type="button" data-history-back data-fallback="/important-items">返回</button></div>
+<section class="panel form-panel">
+  <form method="post" action="{{ action }}" class="form-grid">
+    <label>类型<select name="item_type">{{ ui.options(schemas.IMPORTANT_ITEM_TYPES, item.item_type if item else '其他') }}</select></label>
+    <label>日期<input type="date" name="date" value="{{ (item.date if item else prefill.date).strftime('%Y-%m-%d') if (item.date if item else prefill.date) else '' }}"></label>
+    <label class="wide">内容<input name="content" required value="{{ item.content if item else prefill.content }}"></label>
+    <label>参与人<input name="participants" value="{{ item.participants if item else '' }}"></label>
+    <label>提醒<input name="reminder" value="{{ item.reminder if item else '' }}" placeholder="提醒功能暂留"></label>
+    <div class="form-actions"><button class="button primary" type="submit">保存</button></div>
+  </form>
+</section>
+{% endblock %}

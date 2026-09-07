@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% import "_controls.html" as ui %}
+{% set titles = {'task':'任务','project':'项目','application':'申请','exam':'考试','communication':'沟通记录'} %}
+{% block title %}{{ form_title or (('新增' if is_new else '编辑') ~ titles[type]) }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>{{ form_title or (('新增' if is_new else '编辑') ~ titles[type]) }}</h1></div>
+  <button class="button ghost" type="button" data-history-back data-fallback="{{ next_url }}">返回</button>
+</div>
+<section class="panel form-panel">
+  <form method="post" action="{{ action }}" class="form-grid">
+    <input type="hidden" name="next" value="{{ next_url }}">
+    <label>学生{{ ui.student_select(students, item.student_id if item else student_id) }}</label>
+    {% if type == 'task' %}
+      <label class="wide">任务标题<input name="title" required value="{{ item.title if item and not is_new else '' }}"></label>
+      {% if locked_category %}
+        <input type="hidden" name="category" value="{{ locked_category }}">
+        <label>分类<input value="{{ locked_category }}" disabled></label>
+      {% else %}
+        <label>分类<select name="category">{{ ui.options(schemas.CATEGORIES, item.category if item else '其他') }}</select></label>
+        <label>自定义分类<input name="category_custom" placeholder="选择“其他”时填写"></label>
+      {% endif %}
+      <label>状态<select name="status">{{ ui.options(schemas.TASK_STATUSES, item.status if item else '未开始') }}</select></label>
+      <label>优先级<select name="priority">{{ ui.options(schemas.PRIORITIES, item.priority if item else '中') }}</select></label>
+      {% if locked_owner %}
+        <input type="hidden" name="owner" value="{{ locked_owner }}">
+        <label>负责人<input value="{{ locked_owner }}" disabled></label>
+      {% else %}
+        <label>负责人<select name="owner">{{ ui.options(schemas.OWNERS, item.owner if item else '学生') }}</select></label>
+      {% endif %}
+      <label>日期<input type="date" name="due_date" value="{{ item.due_date.isoformat() if item and item.due_date else '' }}"></label>
+      {% if (locked_owner or (item.owner if item else '学生')) == '顾问' %}
+        <input type="hidden" name="time_node" value="未添加时间信息">
+      {% else %}
+        <label>时间节点<select name="time_node">{{ ui.options(schemas.TIME_NODES, item.time_node if item and item.time_node else '未添加时间信息') }}</select></label>
+      {% endif %}
+      <label class="wide">描述<textarea name="description" rows="5">{{ item.description if item and not is_new else '' }}</textarea></label>
+    {% elif type == 'project' %}
+      <label class="wide">项目名称<input name="project_name" required value="{{ item.project_name if item else '' }}"></label>
+      <label>类型<select name="project_type">{{ ui.options(schemas.PROJECT_TYPES, item.project_type if item else '其他') }}</select></label>
+      <label>自定义类型<input name="project_type_custom" placeholder="选择“其他”时填写"></label>
+      <label>状态<select name="status">{{ ui.options(schemas.PROJECT_STATUSES, item.status if item else '未开始') }}</select></label>
+      <label>开始日期<input type="date" name="start_date" value="{{ item.start_date.isoformat() if item and item.start_date else '' }}"></label>
+      <label>开始节点<select name="start_time_node">{{ ui.options(schemas.TIME_NODES, item.start_time_node if item else '未添加时间信息') }}</select></label>
+      <label>结束日期<input type="date" name="end_date" value="{{ item.end_date.isoformat() if item and item.end_date else '' }}"></label>
+      <label>结束节点<select name="end_time_node">{{ ui.options(schemas.TIME_NODES, item.end_time_node if item else '未添加时间信息') }}</select></label>
+      <label>优先级<select name="risk_level">{{ ui.options(schemas.PRIORITIES, item.risk_level if item else '中') }}</select></label>
+      <label class="wide">成果<input name="outcome" value="{{ item.outcome if item else '' }}"></label>
+      <label class="wide">备注<textarea name="notes" rows="5">{{ item.notes if item else '' }}</textarea></label>
+    {% elif type == 'application' %}
+      <label class="wide">申请项目<input name="program_name" required value="{{ item.program_name if item else '' }}"></label>
+      <label>类型<select name="program_type">{{ ui.options(schemas.APPLICATION_TYPES, item.program_type if item else '其他') }}</select></label>
+      <label>自定义类型<input name="program_type_custom" placeholder="选择“其他”时填写"></label>
+      <label>状态<select name="status">{{ ui.options(schemas.APPLICATION_STATUSES, item.status if item else '未开始') }}</select></label>
+      <label>截止日期<input type="date" name="deadline" value="{{ item.deadline.isoformat() if item and item.deadline else '' }}"></label>
+      <label>截止节点<select name="deadline_time_node">{{ ui.options(schemas.TIME_NODES, item.deadline_time_node if item else '未添加时间信息') }}</select></label>
+      <label>结果日期<input type="date" name="result_date" value="{{ item.result_date.isoformat() if item and item.result_date else '' }}"></label>
+      <label>结果节点<select name="result_time_node">{{ ui.options(schemas.TIME_NODES, item.result_time_node if item else '未添加时间信息') }}</select></label>
+      <label>结果<input name="result" value="{{ item.result if item else '' }}"></label>
+      <label class="wide">材料状态<input name="materials_status" value="{{ item.materials_status if item else '' }}"></label>
+      <label class="wide">下一步<input name="next_step" value="{{ item.next_step if item else '' }}"></label>
+      <label class="wide">备注<textarea name="notes" rows="5">{{ item.notes if item else '' }}</textarea></label>
+      <div class="form-section-title">学校与 Portal 信息</div>
+      <label>国家批次<input name="country_batch" value="{{ item.country_batch if item else '' }}"></label>
+      <label>Portal ID<input name="portal_id" value="{{ item.portal_id if item else '' }}"></label>
+      <label>Portal 密码<input name="portal_password" value="{{ item.portal_password if item else '' }}"></label>
+      <label>Portal 材料完成进度<input name="portal_material_progress" value="{{ item.portal_material_progress if item else '' }}"></label>
+      <label>填表状态<input name="form_status" value="{{ item.form_status if item else '' }}"></label>
+      <label>提交日期<input type="date" name="submission_date" value="{{ item.submission_date.isoformat() if item and item.submission_date else '' }}"></label>
+      <label>是否补充文书<input name="supplemental_essay" value="{{ item.supplemental_essay if item else '' }}"></label>
+      <label>是否需要成绩单<input name="transcript_required" value="{{ item.transcript_required if item else '' }}"></label>
+      <label>CEEB Code<input name="ceeb_code" value="{{ item.ceeb_code if item else '' }}"></label>
+      <label>语言 T/D<input name="language_delivery" value="{{ item.language_delivery if item else '' }}"></label>
+      <label>SAT 送分<input name="sat_delivery" value="{{ item.sat_delivery if item else '' }}"></label>
+      <label>ACT Code<input name="act_code" value="{{ item.act_code if item else '' }}"></label>
+      <label>ACT 送分<input name="act_delivery" value="{{ item.act_delivery if item else '' }}"></label>
+      <label>AP 送分<input name="ap_delivery" value="{{ item.ap_delivery if item else '' }}"></label>
+      <label>其他递送<input name="other_delivery" value="{{ item.other_delivery if item else '' }}"></label>
+      <label>递送日期<input type="date" name="delivery_date" value="{{ item.delivery_date.isoformat() if item and item.delivery_date else '' }}"></label>
+      <label>网申系统<input name="application_system" value="{{ item.application_system if item else '' }}"></label>
+      <label>用户名<input name="application_username" value="{{ item.application_username if item else '' }}"></label>
+      <label>密码<input name="application_password" value="{{ item.application_password if item else '' }}"></label>
+      <label class="wide">Portal 链接<input type="url" name="portal_url" value="{{ item.portal_url if item else '' }}"></label>
+      <label class="wide">Portal security Q&amp;A<textarea name="portal_security_qa" rows="6">{{ item.portal_security_qa if item else '' }}</textarea></label>
+    {% elif type == 'exam' %}
+      <label>考试类型<select name="exam_name">{{ ui.options(['TOEFL','SAT','ACT','AP','其他'], item.exam_name if item else 'TOEFL') }}</select></label>
+      <label>日期<input type="date" name="exam_date" value="{{ item.exam_date.isoformat() if item and item.exam_date else '' }}"></label>
+      <label>时间节点<select name="exam_time_node">{{ ui.options(schemas.TIME_NODES, item.exam_time_node if item else '未添加时间信息') }}</select></label>
+      <label>分数<input name="score" value="{{ item.score if item else '' }}"></label>
+      <label>目标分<input name="target_score" value="{{ item.target_score if item else '' }}"></label>
+      <label>状态<select name="status">{{ ui.options(schemas.EXAM_STATUSES, item.status if item else '未开始') }}</select></label>
+      <label class="wide">下一步<input name="next_action" value="{{ item.next_action if item else '' }}"></label>
+      <label class="wide">备注<textarea name="notes" rows="5">{{ item.notes if item else '' }}</textarea></label>
+      <div class="form-section-title">分项成绩（按考试类型填写）</div>
+      <label>R / R&amp;W<input name="reading" value="{{ item.reading if item else '' }}"></label>
+      <label>L<input name="listening" value="{{ item.listening if item else '' }}"></label>
+      <label>S<input name="speaking" value="{{ item.speaking if item else '' }}"></label>
+      <label>W<input name="writing" value="{{ item.writing if item else '' }}"></label>
+      <label>Math<input name="math" value="{{ item.math if item else '' }}"></label>
+      <label>Science<input name="science" value="{{ item.science if item else '' }}"></label>
+      <label>English<input name="english" value="{{ item.english if item else '' }}"></label>
+      <label>Total / Composite<input name="total" value="{{ item.total if item else '' }}"></label>
+      <label>Appointment No.<input name="appointment_number" value="{{ item.appointment_number if item else '' }}"></label>
+      <label>Record Locator<input name="record_locator" value="{{ item.record_locator if item else '' }}"></label>
+      <label>AP 科目<input name="subject" value="{{ item.subject if item else '' }}"></label>
+      <label>其他考试分项<input name="component_score" value="{{ item.component_score if item else '' }}"></label>
+    {% elif type == 'communication' %}
+      <label>沟通日期<input type="date" name="date" value="{{ item.date.isoformat() if item and item.date else '' }}"></label>
+      <label>沟通节点<select name="date_time_node">{{ ui.options(schemas.TIME_NODES, item.date_time_node if item else '未添加时间信息') }}</select></label>
+      <label>沟通对象<select name="contact_person">{{ ui.options(schemas.CONTACT_PEOPLE, item.contact_person if item else '家长') }}</select></label>
+      <label>方式<select name="method">{{ ui.options(schemas.METHODS, item.method if item else '微信') }}</select></label>
+      <label>下次跟进日期<input type="date" name="next_follow_up" value="{{ item.next_follow_up.isoformat() if item and item.next_follow_up else '' }}"></label>
+      <label>跟进节点<select name="follow_up_time_node">{{ ui.options(schemas.TIME_NODES, item.follow_up_time_node if item else '未添加时间信息') }}</select></label>
+      <label class="wide">摘要<textarea name="summary" rows="5" required>{{ item.summary if item else '' }}</textarea></label>
+      <label class="wide">生成任务<textarea name="generated_tasks" rows="3">{{ item.generated_tasks if item else '' }}</textarea></label>
+    {% endif %}
+    <div class="form-actions"><button class="button primary" type="submit">保存</button></div>
+  </form>
+</section>
+{% endblock %}

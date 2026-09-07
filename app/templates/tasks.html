@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% import "_controls.html" as ui %}
+{% block title %}任务{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>任务</h1></div><a class="button primary" href="/tasks/new">新增任务</a></div>
+<form class="filters task-filters" method="get">
+  <input type="search" name="q" value="{{ filters.q }}" placeholder="关键词搜索">
+  {{ ui.filter_actions(request) }}
+  {{ ui.student_select(students, filters.student_id) }}
+  <select name="category"><option value="">全部类型</option>{{ ui.options(schemas.CATEGORIES, filters.category) }}</select>
+  <select name="status"><option value="">全部状态</option>{{ ui.options(schemas.TASK_STATUSES, filters.status) }}</select>
+  <select name="priority"><option value="">全部优先级</option>{{ ui.options(schemas.PRIORITIES, filters.priority) }}</select>
+  <select name="due"><option value="">全部到期</option><option value="soon" {% if filters.due == 'soon' %}selected{% endif %}>7天内到期</option><option value="overdue" {% if filters.due == 'overdue' %}selected{% endif %}>已逾期</option></select>
+</form>
+<section class="panel"><table class="task-table">
+  <thead><tr><th>任务</th><th>学生</th><th>类型</th><th>时间</th><th>状态</th><th>优先级</th><th>操作</th></tr></thead>
+  <tbody>{% for task in rows %}
+    <tr class="{{ task_due_state(task) }}"><td><a href="/tasks/{{ task.id }}/edit">{{ task.title }}</a></td><td>{{ task.student.name if task.student else '未指定' }}</td><td>{{ task.category }}</td><td>{{ display_task_time(task) }} {{ ui.due_badge(task_due_state(task)) }}</td><td><form method="post" action="/tasks/{{ task.id }}/status"><input type="hidden" name="next" value="{{ request.url.path }}{% if request.url.query %}?{{ request.url.query }}{% endif %}"><button class="status-button" title="点击切换状态">{{ ui.status_badge(task.status) }}</button></form></td><td><form method="post" action="/tasks/{{ task.id }}/priority"><input type="hidden" name="next" value="{{ request.url.path }}{% if request.url.query %}?{{ request.url.query }}{% endif %}"><button class="status-button" title="点击切换优先级">{{ ui.status_badge(task.priority) }}</button></form></td><td class="actions"><a href="/tasks/{{ task.id }}/edit">编辑</a><form method="post" action="/tasks/{{ task.id }}/delete" data-confirm="确认删除任务？"><button>删除</button></form></td></tr>
+  {% else %}<tr><td colspan="7" class="empty">暂无任务</td></tr>{% endfor %}</tbody>
+</table></section>
+{% endblock %}

@@ -1,0 +1,363 @@
+{
+  "audit_logs": {
+    "columns": [
+      "id",
+      "created_at",
+      "username",
+      "action",
+      "status"
+    ],
+    "sql": "\nCREATE TABLE audit_logs (\n\tid SERIAL NOT NULL, \n\tcreated_at TIMESTAMP WITHOUT TIME ZONE NOT NULL, \n\tusername VARCHAR(120) NOT NULL, \n\taction VARCHAR(300) NOT NULL, \n\tstatus INTEGER NOT NULL, \n\tPRIMARY KEY (id)\n)\n\n",
+    "indexes": []
+  },
+  "data_sources": {
+    "columns": [
+      "id",
+      "name",
+      "category",
+      "url",
+      "enabled",
+      "refresh_hours",
+      "last_checked_at",
+      "last_status",
+      "last_error",
+      "created_at",
+      "updated_at"
+    ],
+    "sql": "\nCREATE TABLE data_sources (\n\tid SERIAL NOT NULL, \n\tname VARCHAR(200) NOT NULL, \n\tcategory VARCHAR(80), \n\turl VARCHAR(1000) NOT NULL, \n\tenabled BOOLEAN, \n\trefresh_hours INTEGER, \n\tlast_checked_at TIMESTAMP WITHOUT TIME ZONE, \n\tlast_status VARCHAR(50), \n\tlast_error TEXT, \n\tcreated_at TIMESTAMP WITHOUT TIME ZONE, \n\tupdated_at TIMESTAMP WITHOUT TIME ZONE, \n\tPRIMARY KEY (id)\n)\n\n",
+    "indexes": [
+      "CREATE INDEX ix_data_sources_id ON data_sources (id)"
+    ]
+  },
+  "important_items": {
+    "columns": [
+      "id",
+      "item_type",
+      "content",
+      "participants",
+      "date",
+      "reminder",
+      "created_at",
+      "updated_at"
+    ],
+    "sql": "\nCREATE TABLE important_items (\n\tid SERIAL NOT NULL, \n\titem_type VARCHAR(80), \n\tcontent TEXT NOT NULL, \n\tparticipants VARCHAR(500), \n\tdate DATE, \n\treminder VARCHAR(120), \n\tcreated_at TIMESTAMP WITHOUT TIME ZONE, \n\tupdated_at TIMESTAMP WITHOUT TIME ZONE, \n\tPRIMARY KEY (id)\n)\n\n",
+    "indexes": [
+      "CREATE INDEX ix_important_items_id ON important_items (id)"
+    ]
+  },
+  "login_attempts": {
+    "columns": [
+      "key",
+      "count",
+      "until"
+    ],
+    "sql": "\nCREATE TABLE login_attempts (\n\tkey VARCHAR(64) NOT NULL, \n\tcount INTEGER NOT NULL, \n\tuntil TIMESTAMP WITHOUT TIME ZONE NOT NULL, \n\tPRIMARY KEY (key)\n)\n\n",
+    "indexes": []
+  },
+  "reference_items": {
+    "columns": [
+      "id",
+      "category",
+      "name",
+      "code",
+      "secondary_code",
+      "url",
+      "sort_order"
+    ],
+    "sql": "\nCREATE TABLE reference_items (\n\tid SERIAL NOT NULL, \n\tcategory VARCHAR(50) NOT NULL, \n\tname VARCHAR(250) NOT NULL, \n\tcode VARCHAR(50), \n\tsecondary_code VARCHAR(50), \n\turl VARCHAR(500), \n\tsort_order INTEGER, \n\tPRIMARY KEY (id)\n)\n\n",
+    "indexes": [
+      "CREATE INDEX ix_reference_items_category ON reference_items (category)",
+      "CREATE INDEX ix_reference_items_name ON reference_items (name)",
+      "CREATE INDEX ix_reference_items_id ON reference_items (id)"
+    ]
+  },
+  "students": {
+    "columns": [
+      "id",
+      "name",
+      "grade",
+      "target_school",
+      "target_major",
+      "advisor",
+      "priority_level",
+      "priority_direction",
+      "overall_status",
+      "birth_date",
+      "phone",
+      "address",
+      "chinese_address",
+      "national_id_number",
+      "passport_number",
+      "passport_issue_date",
+      "passport_expiry_date",
+      "bank_certificate_amount",
+      "credit_card_holder",
+      "cardholder_phone",
+      "card_channel",
+      "card_number",
+      "card_expiry",
+      "card_cvv",
+      "final_school",
+      "notes",
+      "portal_token",
+      "created_at",
+      "updated_at"
+    ],
+    "sql": "\nCREATE TABLE students (\n\tid SERIAL NOT NULL, \n\tname VARCHAR(120) NOT NULL, \n\tgrade VARCHAR(50), \n\ttarget_school VARCHAR(200), \n\ttarget_major VARCHAR(200), \n\tadvisor VARCHAR(120), \n\tpriority_level VARCHAR(20), \n\tpriority_direction VARCHAR(10), \n\toverall_status VARCHAR(120), \n\tbirth_date DATE, \n\tphone VARCHAR(80), \n\taddress TEXT, \n\tchinese_address TEXT, \n\tnational_id_number VARCHAR(80), \n\tpassport_number VARCHAR(80), \n\tpassport_issue_date DATE, \n\tpassport_expiry_date DATE, \n\tbank_certificate_amount VARCHAR(80), \n\tcredit_card_holder VARCHAR(120), \n\tcardholder_phone VARCHAR(80), \n\tcard_channel VARCHAR(80), \n\tcard_number VARCHAR(100), \n\tcard_expiry VARCHAR(30), \n\tcard_cvv VARCHAR(20), \n\tfinal_school VARCHAR(200), \n\tnotes TEXT, \n\tportal_token VARCHAR(64), \n\tcreated_at TIMESTAMP WITHOUT TIME ZONE, \n\tupdated_at TIMESTAMP WITHOUT TIME ZONE, \n\tPRIMARY KEY (id)\n)\n\n",
+    "indexes": [
+      "CREATE UNIQUE INDEX ix_students_portal_token ON students (portal_token)",
+      "CREATE INDEX ix_students_name ON students (name)",
+      "CREATE INDEX ix_students_id ON students (id)"
+    ]
+  },
+  "users": {
+    "columns": [
+      "id",
+      "username",
+      "password_hash",
+      "role",
+      "active"
+    ],
+    "sql": "\nCREATE TABLE users (\n\tid SERIAL NOT NULL, \n\tusername VARCHAR(120) NOT NULL, \n\tpassword_hash TEXT NOT NULL, \n\trole VARCHAR(20) NOT NULL, \n\tactive BOOLEAN NOT NULL, \n\tPRIMARY KEY (id), \n\tUNIQUE (username)\n)\n\n",
+    "indexes": []
+  },
+  "applications": {
+    "columns": [
+      "id",
+      "student_id",
+      "program_name",
+      "program_type",
+      "status",
+      "deadline",
+      "deadline_time_node",
+      "result_date",
+      "result_time_node",
+      "result",
+      "materials_status",
+      "next_step",
+      "notes",
+      "country_batch",
+      "country",
+      "batch",
+      "portal_id",
+      "portal_password",
+      "portal_material_progress",
+      "form_status",
+      "submission_date",
+      "supplemental_essay",
+      "transcript_required",
+      "ceeb_code",
+      "language_delivery",
+      "sat_delivery",
+      "act_code",
+      "act_delivery",
+      "ap_delivery",
+      "other_delivery",
+      "delivery_date",
+      "application_system",
+      "application_username",
+      "application_password",
+      "portal_security_qa",
+      "portal_url",
+      "online_application_status",
+      "portal_status",
+      "score_delivery_status",
+      "portal_q1",
+      "portal_a1",
+      "portal_q2",
+      "portal_a2",
+      "portal_q3",
+      "portal_a3",
+      "portal_q4",
+      "portal_a4",
+      "portal_q5",
+      "portal_a5",
+      "online_details_expanded",
+      "portal_details_expanded",
+      "delivery_details_expanded"
+    ],
+    "sql": "\nCREATE TABLE applications (\n\tid SERIAL NOT NULL, \n\tstudent_id INTEGER NOT NULL, \n\tprogram_name VARCHAR(200) NOT NULL, \n\tprogram_type VARCHAR(50), \n\tstatus VARCHAR(50), \n\tdeadline DATE, \n\tdeadline_time_node VARCHAR(50), \n\tresult_date DATE, \n\tresult_time_node VARCHAR(50), \n\tresult VARCHAR(120), \n\tmaterials_status VARCHAR(200), \n\tnext_step VARCHAR(250), \n\tnotes TEXT, \n\tcountry_batch VARCHAR(120), \n\tcountry VARCHAR(100), \n\tbatch VARCHAR(80), \n\tportal_id VARCHAR(150), \n\tportal_password VARCHAR(150), \n\tportal_material_progress VARCHAR(120), \n\tform_status VARCHAR(120), \n\tsubmission_date DATE, \n\tsupplemental_essay VARCHAR(20), \n\ttranscript_required VARCHAR(20), \n\tceeb_code VARCHAR(50), \n\tlanguage_delivery VARCHAR(120), \n\tsat_delivery VARCHAR(120), \n\tact_code VARCHAR(50), \n\tact_delivery VARCHAR(120), \n\tap_delivery VARCHAR(120), \n\tother_delivery VARCHAR(200), \n\tdelivery_date DATE, \n\tapplication_system VARCHAR(150), \n\tapplication_username VARCHAR(150), \n\tapplication_password VARCHAR(150), \n\tportal_security_qa TEXT, \n\tportal_url VARCHAR(500), \n\tonline_application_status VARCHAR(200), \n\tportal_status VARCHAR(200), \n\tscore_delivery_status VARCHAR(200), \n\tportal_q1 TEXT, \n\tportal_a1 TEXT, \n\tportal_q2 TEXT, \n\tportal_a2 TEXT, \n\tportal_q3 TEXT, \n\tportal_a3 TEXT, \n\tportal_q4 TEXT, \n\tportal_a4 TEXT, \n\tportal_q5 TEXT, \n\tportal_a5 TEXT, \n\tonline_details_expanded BOOLEAN, \n\tportal_details_expanded BOOLEAN, \n\tdelivery_details_expanded BOOLEAN, \n\tPRIMARY KEY (id), \n\tFOREIGN KEY(student_id) REFERENCES students (id) ON DELETE CASCADE\n)\n\n",
+    "indexes": [
+      "CREATE INDEX ix_applications_id ON applications (id)",
+      "CREATE INDEX ix_applications_student_id ON applications (student_id)"
+    ]
+  },
+  "communications": {
+    "columns": [
+      "id",
+      "student_id",
+      "date",
+      "date_time_node",
+      "contact_person",
+      "method",
+      "summary",
+      "next_follow_up",
+      "follow_up_time_node",
+      "generated_tasks",
+      "created_at"
+    ],
+    "sql": "\nCREATE TABLE communications (\n\tid SERIAL NOT NULL, \n\tstudent_id INTEGER NOT NULL, \n\tdate DATE, \n\tdate_time_node VARCHAR(50), \n\tcontact_person VARCHAR(50), \n\tmethod VARCHAR(50), \n\tsummary TEXT, \n\tnext_follow_up DATE, \n\tfollow_up_time_node VARCHAR(50), \n\tgenerated_tasks TEXT, \n\tcreated_at TIMESTAMP WITHOUT TIME ZONE, \n\tPRIMARY KEY (id), \n\tFOREIGN KEY(student_id) REFERENCES students (id) ON DELETE CASCADE\n)\n\n",
+    "indexes": [
+      "CREATE INDEX ix_communications_id ON communications (id)",
+      "CREATE INDEX ix_communications_student_id ON communications (student_id)"
+    ]
+  },
+  "courses": {
+    "columns": [
+      "id",
+      "student_id",
+      "semester",
+      "category",
+      "name",
+      "level",
+      "grade",
+      "credits",
+      "created_at",
+      "updated_at"
+    ],
+    "sql": "\nCREATE TABLE courses (\n\tid SERIAL NOT NULL, \n\tstudent_id INTEGER NOT NULL, \n\tsemester VARCHAR(100), \n\tcategory VARCHAR(120), \n\tname VARCHAR(200) NOT NULL, \n\tlevel VARCHAR(100), \n\tgrade VARCHAR(80), \n\tcredits VARCHAR(50), \n\tcreated_at TIMESTAMP WITHOUT TIME ZONE, \n\tupdated_at TIMESTAMP WITHOUT TIME ZONE, \n\tPRIMARY KEY (id), \n\tFOREIGN KEY(student_id) REFERENCES students (id) ON DELETE CASCADE\n)\n\n",
+    "indexes": [
+      "CREATE INDEX ix_courses_id ON courses (id)",
+      "CREATE INDEX ix_courses_student_id ON courses (student_id)"
+    ]
+  },
+  "exams": {
+    "columns": [
+      "id",
+      "student_id",
+      "exam_name",
+      "exam_date",
+      "exam_time_node",
+      "score",
+      "target_score",
+      "status",
+      "next_action",
+      "notes",
+      "reading",
+      "listening",
+      "speaking",
+      "writing",
+      "math",
+      "science",
+      "english",
+      "total",
+      "appointment_number",
+      "record_locator",
+      "subject",
+      "component_score"
+    ],
+    "sql": "\nCREATE TABLE exams (\n\tid SERIAL NOT NULL, \n\tstudent_id INTEGER NOT NULL, \n\texam_name VARCHAR(120) NOT NULL, \n\texam_date DATE, \n\texam_time_node VARCHAR(50), \n\tscore VARCHAR(80), \n\ttarget_score VARCHAR(80), \n\tstatus VARCHAR(50), \n\tnext_action VARCHAR(250), \n\tnotes TEXT, \n\treading VARCHAR(30), \n\tlistening VARCHAR(30), \n\tspeaking VARCHAR(30), \n\twriting VARCHAR(30), \n\tmath VARCHAR(30), \n\tscience VARCHAR(30), \n\tenglish VARCHAR(30), \n\ttotal VARCHAR(30), \n\tappointment_number VARCHAR(100), \n\trecord_locator VARCHAR(100), \n\tsubject VARCHAR(150), \n\tcomponent_score VARCHAR(100), \n\tPRIMARY KEY (id), \n\tFOREIGN KEY(student_id) REFERENCES students (id) ON DELETE CASCADE\n)\n\n",
+    "indexes": [
+      "CREATE INDEX ix_exams_exam_name ON exams (exam_name)",
+      "CREATE INDEX ix_exams_student_id ON exams (student_id)",
+      "CREATE INDEX ix_exams_id ON exams (id)"
+    ]
+  },
+  "login_sessions": {
+    "columns": [
+      "token_hash",
+      "user_id",
+      "expires_at"
+    ],
+    "sql": "\nCREATE TABLE login_sessions (\n\ttoken_hash VARCHAR(64) NOT NULL, \n\tuser_id INTEGER NOT NULL, \n\texpires_at TIMESTAMP WITHOUT TIME ZONE NOT NULL, \n\tPRIMARY KEY (token_hash), \n\tFOREIGN KEY(user_id) REFERENCES users (id)\n)\n\n",
+    "indexes": []
+  },
+  "projects": {
+    "columns": [
+      "id",
+      "student_id",
+      "project_name",
+      "project_type",
+      "status",
+      "start_date",
+      "start_time_node",
+      "end_date",
+      "end_time_node",
+      "outcome",
+      "risk_level",
+      "notes"
+    ],
+    "sql": "\nCREATE TABLE projects (\n\tid SERIAL NOT NULL, \n\tstudent_id INTEGER NOT NULL, \n\tproject_name VARCHAR(200) NOT NULL, \n\tproject_type VARCHAR(50), \n\tstatus VARCHAR(50), \n\tstart_date DATE, \n\tstart_time_node VARCHAR(50), \n\tend_date DATE, \n\tend_time_node VARCHAR(50), \n\toutcome VARCHAR(250), \n\trisk_level VARCHAR(20), \n\tnotes TEXT, \n\tPRIMARY KEY (id), \n\tFOREIGN KEY(student_id) REFERENCES students (id) ON DELETE CASCADE\n)\n\n",
+    "indexes": [
+      "CREATE INDEX ix_projects_student_id ON projects (student_id)",
+      "CREATE INDEX ix_projects_id ON projects (id)"
+    ]
+  },
+  "public_events": {
+    "columns": [
+      "id",
+      "source_id",
+      "title",
+      "category",
+      "event_date",
+      "date_kind",
+      "source_url",
+      "source_text",
+      "review_status",
+      "reminder_days",
+      "created_at",
+      "updated_at"
+    ],
+    "sql": "\nCREATE TABLE public_events (\n\tid SERIAL NOT NULL, \n\tsource_id INTEGER NOT NULL, \n\ttitle VARCHAR(300) NOT NULL, \n\tcategory VARCHAR(80), \n\tevent_date DATE NOT NULL, \n\tdate_kind VARCHAR(80), \n\tsource_url VARCHAR(1000), \n\tsource_text TEXT, \n\treview_status VARCHAR(50), \n\treminder_days VARCHAR(50), \n\tcreated_at TIMESTAMP WITHOUT TIME ZONE, \n\tupdated_at TIMESTAMP WITHOUT TIME ZONE, \n\tPRIMARY KEY (id), \n\tFOREIGN KEY(source_id) REFERENCES data_sources (id) ON DELETE CASCADE\n)\n\n",
+    "indexes": [
+      "CREATE INDEX ix_public_events_id ON public_events (id)",
+      "CREATE INDEX ix_public_events_event_date ON public_events (event_date)",
+      "CREATE INDEX ix_public_events_source_id ON public_events (source_id)"
+    ]
+  },
+  "remembered_logins": {
+    "columns": [
+      "token_hash",
+      "user_id",
+      "encrypted_password",
+      "expires_at"
+    ],
+    "sql": "\nCREATE TABLE remembered_logins (\n\ttoken_hash VARCHAR(64) NOT NULL, \n\tuser_id INTEGER NOT NULL, \n\tencrypted_password TEXT NOT NULL, \n\texpires_at TIMESTAMP WITHOUT TIME ZONE NOT NULL, \n\tPRIMARY KEY (token_hash), \n\tFOREIGN KEY(user_id) REFERENCES users (id)\n)\n\n",
+    "indexes": []
+  },
+  "tasks": {
+    "columns": [
+      "id",
+      "student_id",
+      "title",
+      "category",
+      "status",
+      "priority",
+      "priority_direction",
+      "owner",
+      "due_date",
+      "time_node",
+      "description",
+      "reminder_days",
+      "created_at",
+      "updated_at"
+    ],
+    "sql": "\nCREATE TABLE tasks (\n\tid SERIAL NOT NULL, \n\tstudent_id INTEGER, \n\ttitle VARCHAR(200) NOT NULL, \n\tcategory VARCHAR(50), \n\tstatus VARCHAR(50), \n\tpriority VARCHAR(20), \n\tpriority_direction VARCHAR(10), \n\towner VARCHAR(50), \n\tdue_date DATE, \n\ttime_node VARCHAR(50), \n\tdescription TEXT, \n\treminder_days VARCHAR(50), \n\tcreated_at TIMESTAMP WITHOUT TIME ZONE, \n\tupdated_at TIMESTAMP WITHOUT TIME ZONE, \n\tPRIMARY KEY (id), \n\tFOREIGN KEY(student_id) REFERENCES students (id) ON DELETE SET NULL\n)\n\n",
+    "indexes": [
+      "CREATE INDEX ix_tasks_student_id ON tasks (student_id)",
+      "CREATE INDEX ix_tasks_id ON tasks (id)"
+    ]
+  },
+  "timelines": {
+    "columns": [
+      "id",
+      "student_id",
+      "owner",
+      "period",
+      "category",
+      "content",
+      "status",
+      "date",
+      "time_node",
+      "notes",
+      "source_event_id",
+      "reminder_days"
+    ],
+    "sql": "\nCREATE TABLE timelines (\n\tid SERIAL NOT NULL, \n\tstudent_id INTEGER, \n\towner VARCHAR(50), \n\tperiod VARCHAR(100), \n\tcategory VARCHAR(50), \n\tcontent TEXT, \n\tstatus VARCHAR(50), \n\tdate DATE, \n\ttime_node VARCHAR(50), \n\tnotes TEXT, \n\tsource_event_id INTEGER, \n\treminder_days VARCHAR(50), \n\tPRIMARY KEY (id), \n\tFOREIGN KEY(student_id) REFERENCES students (id) ON DELETE SET NULL, \n\tFOREIGN KEY(source_event_id) REFERENCES public_events (id) ON DELETE SET NULL\n)\n\n",
+    "indexes": [
+      "CREATE INDEX ix_timelines_source_event_id ON timelines (source_event_id)",
+      "CREATE INDEX ix_timelines_id ON timelines (id)",
+      "CREATE INDEX ix_timelines_student_id ON timelines (student_id)"
+    ]
+  }
+}

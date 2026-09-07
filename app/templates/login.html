@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>登录 · 申请管理系统</title>
+  <style>body{font:16px system-ui;background:#f4f6fa;color:#24334b;display:grid;place-items:center;min-height:95vh}.card{background:white;padding:36px;border-radius:16px;width:min(340px,80vw)}label{display:block;margin:18px 0}input:not([type=checkbox]){box-sizing:border-box;width:100%;padding:12px;border:1px solid #ccd3df;border-radius:6px}button{padding:12px;width:100%;background:#4264ed;color:white;border:0;border-radius:6px;cursor:pointer}.error{color:#b42318}.hint{font-size:13px;color:#697386;line-height:1.6}</style>
+</head>
+<body>
+  <main class="card">
+    <h1>申请管理系统</h1>
+    {% if error %}<p class="error" role="alert">{{ error }}</p>{% endif %}
+    <form method="post" action="/login" id="login">
+      <label>账号<input name="username" value="{{ username|default('') }}" autocomplete="username" required maxlength="120" autofocus></label>
+      <label>密码<input type="password" name="password" value="{{ password|default('') }}" autocomplete="current-password" required maxlength="1024"></label>
+      <label><input type="checkbox" name="remember" value="1" {% if remembered %}checked{% endif %}> 记住账号和密码（30天）</label>
+      <p class="hint">仅在此浏览器填充账号和密码，仍需点击登录。登录会话有效期为5小时。</p>
+      <button type="submit">登录</button>
+    </form>
+  </main>
+</body>
+</html>

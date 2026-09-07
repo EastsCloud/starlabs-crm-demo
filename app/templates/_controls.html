@@ -1,0 +1,38 @@
+{% macro student_select(students, selected_id='', allow_advisor=False, field_name='student_id') -%}
+<select name="{{ field_name }}">
+  <option value="">全部/未指定</option>
+  {% if allow_advisor %}
+    <option value="advisor" {% if selected_id == 'advisor' %}selected{% endif %}>顾问事项</option>
+  {% endif %}
+  {% for student in students %}
+    <option value="{{ student.id }}" {% if selected_id and selected_id|string == student.id|string %}selected{% endif %}>{{ student.name }}</option>
+  {% endfor %}
+</select>
+{%- endmacro %}
+
+{% macro options(values, selected='') -%}
+  {% for value in values %}
+    <option value="{{ value }}" {% if selected == value %}selected{% endif %}>{{ value }}</option>
+  {% endfor %}
+{%- endmacro %}
+
+{% macro status_badge(value, extra='') -%}
+  {% set cls = 'badge' %}
+  {% if value in ['已完成', 'Accepted', '已出分'] %}{% set cls = cls + ' green' %}
+  {% elif value in ['WIP', '高', 'Rejected', 'Unsuccessful', '已取消', '取消'] %}{% set cls = cls + ' red' %}
+  {% elif value in ['待确认', '待提交', '进行中', '准备材料', '备考中', '已报名'] %}{% set cls = cls + ' amber' %}
+  {% elif value in ['等待反馈', '等结果', 'Waitlist', 'Waitlisted', '待跟进'] %}{% set cls = cls + ' blue' %}
+  {% endif %}
+  <span class="{{ cls }} {{ extra }}">{{ value or '-' }}</span>
+{%- endmacro %}
+
+{% macro due_badge(state) -%}
+  {% if state == 'overdue' %}<span class="badge red">逾期</span>
+  {% elif state == 'soon' %}<span class="badge amber">即将到期</span>
+  {% endif %}
+{%- endmacro %}
+
+{% macro filter_actions(request) -%}
+  <button type="submit" class="button">搜索</button>
+  <a class="button ghost" href="{{ request.url.path }}">清除</a>
+{%- endmacro %}

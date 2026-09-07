@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% import "_controls.html" as ui %}
+{% block title %}时间线{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>时间线</h1></div></div>
+<form class="filters timeline-filters" method="get">
+  <input type="search" name="q" value="{{ filters.q }}" placeholder="关键词搜索">
+  {{ ui.filter_actions(request) }}
+  {{ ui.student_select(students, filters.participant, False, 'participant') }}
+  <select name="category"><option value="">全部分类</option>{{ ui.options(schemas.TIMELINE_CATEGORIES, filters.category) }}</select>
+  <select name="status_type">
+    <option value="">全部状态类型</option>
+    <option value="done" {% if filters.status_type == 'done' %}selected{% endif %}>已完成的</option>
+    <option value="active" {% if filters.status_type == 'active' %}selected{% endif %}>未完成的</option>
+    <option value="not_started" {% if filters.status_type == 'not_started' %}selected{% endif %}>WIP</option>
+    <option value="in_progress" {% if filters.status_type == 'in_progress' %}selected{% endif %}>待确认</option>
+  </select>
+</form>
+<section class="panel">
+  <div class="section-head">
+    <h2>横向时间线</h2>
+    <div class="head-actions">
+      <button class="button" type="button" data-scroll-group="overdue">已逾期</button>
+      <button class="button" type="button" data-scroll-group="today">今日</button>
+    </div>
+  </div>
+  <div class="timeline-strip" id="timeline-strip">
+    {% for row in rows %}
+      <article class="timeline-card timeline-{{ row.group }}" data-group="{{ row.group }}">
+        <time>{{ row.date.strftime('%Y-%m-%d') if row.date else '未添加日期' }}</time>
+        <span class="badge blue">{{ row.kind }} · {{ row.category }}</span>
+        <h3><a href="{{ row.url }}" {% if row.url.startswith('http') %}target="_blank" rel="noopener"{% endif %}>{{ row.title }}</a></h3>
+        <p>{{ row.student.name if row.student else '未指定学生' }}</p>
+        <div>{{ ui.status_badge(row.status) }}</div>
+        {% if row.notes %}<small>{{ row.notes }}</small>{% endif %}
+      </article>
+    {% else %}
+      <div class="empty timeline-empty">暂无符合条件的任务</div>
+    {% endfor %}
+  </div>
+</section>
+<script>
+  const strip = document.getElementById("timeline-strip");
+  function scrollToTimelineGroup(group) {
+    if (!strip) return;
+    const card = strip.querySelector(`[data-group="${group}"]`);
+    if (card) card.scrollIntoView({ behavior: "smooth", inline: "start", block: "nearest" });
+  }
+  window.addEventListener("load", function () {
+    scrollToTimelineGroup("overdue");
+  });
+  document.querySelectorAll("[data-scroll-group]").forEach(function (button) {
+    button.addEventListener("click", function () {
+      scrollToTimelineGroup(button.dataset.scrollGroup);
+    });
+  });
+</script>
+{% endblock %}

@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% import "_controls.html" as ui %}
+{% set titles = {'application':'申请信息','exam':'标化记录','course':'选课信息'} %}
+{% block title %}{{ '新增' if is_new else '编辑' }}{{ titles[type] }}{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>{{ '新增' if is_new else '编辑' }}{{ titles[type] }}</h1></div><button class="button ghost" type="button" data-history-back data-fallback="{{ next_url }}">返回</button></div>
+<section class="panel form-panel"><form method="post" action="{{ action }}" class="form-grid">
+  <input type="hidden" name="next" value="{{ next_url }}"><label>学生{{ ui.student_select(students, item.student_id if item else student_id) }}</label>
+  {% if type == 'application' %}
+    <label>申请学校<input name="program_name" required value="{{ item.program_name if item else '' }}"></label>
+    <input type="hidden" name="program_type" value="大学">
+    <label>国家<input name="country" value="{{ item.country if item else '' }}"></label><label>批次<input name="batch" value="{{ item.batch if item else '' }}" placeholder="ED / EA / RD"></label>
+    <label>申请状态<select name="status">{{ ui.options(schemas.APPLICATION_STATUSES, (item.status if item else '') or 'WIP') }}</select></label>
+    <label>截止时间<input type="date" name="deadline" value="{{ item.deadline.isoformat() if item and item.deadline else '' }}"></label>
+    <div class="form-section-title">网申情况</div>
+    <label>填表状态<select name="form_status">{{ ui.options(schemas.APPLICATION_FORM_STATUSES, (item.form_status or item.online_application_status if item else '') or 'WIP') }}</select></label><label>提交日期<input type="date" name="submission_date" value="{{ item.submission_date.isoformat() if item and item.submission_date else '' }}"></label>
+    <label class="checkbox-label"><input type="checkbox" name="supplemental_essay" value="Y" {% if item and item.supplemental_essay in ['Y','是','true','1'] %}checked{% endif %}>是否补充文书</label><label class="checkbox-label"><input type="checkbox" name="transcript_required" value="Y" {% if item and item.transcript_required in ['Y','是','true','1'] %}checked{% endif %}>是否需要成绩单</label>
+    <label>Portal ID<input name="portal_id" value="{{ item.portal_id if item else '' }}"></label><label>Portal密码<input name="portal_password" value="{{ item.portal_password if item else '' }}"></label>
+    <label>网申系统<input name="application_system" value="{{ item.application_system if item else '' }}"></label><label>用户名<input name="application_username" value="{{ item.application_username if item else '' }}"></label>
+    <label>网申密码<input name="application_password" value="{{ item.application_password if item else '' }}"></label><label>Portal材料完成进度<select name="portal_material_progress">{{ ui.options(schemas.PORTAL_PROGRESS_OPTIONS, (item.portal_material_progress or item.portal_status if item else '') or '0%') }}</select></label>
+    <div class="form-section-title">Portal Security Q&amp;A</div>
+    {% for number in range(1, 6) %}<label>Q{{ number }}<input name="portal_q{{ number }}" value="{{ item|attr('portal_q' ~ number) if item else '' }}"></label><label>A{{ number }}<input name="portal_a{{ number }}" value="{{ item|attr('portal_a' ~ number) if item else '' }}"></label>{% endfor %}
+    <div class="form-section-title">标化递送</div>
+    <label>递送状态<select name="score_delivery_status">{{ ui.options(schemas.SCORE_DELIVERY_STATUSES, (item.score_delivery_status if item else '') or 'WIP') }}</select></label><label>CEEB Code<input name="ceeb_code" value="{{ item.ceeb_code if item else '' }}"></label>
+    <label>语言T/D送分<input name="language_delivery" value="{{ item.language_delivery if item else '' }}"></label><label>SAT送分<input name="sat_delivery" value="{{ item.sat_delivery if item else '' }}"></label>
+    <label>ACT Code<input name="act_code" value="{{ item.act_code if item else '' }}"></label><label>ACT送分<input name="act_delivery" value="{{ item.act_delivery if item else '' }}"></label>
+    <label>AP送分<input name="ap_delivery" value="{{ item.ap_delivery if item else '' }}"></label><label>其他<input name="other_delivery" value="{{ item.other_delivery if item else '' }}"></label>
+    <label>递送日期<input type="date" name="delivery_date" value="{{ item.delivery_date.isoformat() if item and item.delivery_date else '' }}"></label><label>Portal链接<input type="url" name="portal_url" value="{{ item.portal_url if item else '' }}"></label>
+  {% elif type == 'course' %}
+    <label>学期<input name="semester" required value="{{ item.semester if item else '' }}" placeholder="例如 2026 秋季"></label><label>课程分类<input name="category" value="{{ item.category if item else '' }}" placeholder="科目 / Department"></label>
+    <label class="wide">课程名称<input name="name" required value="{{ item.name if item else '' }}"></label><label>等级<input name="level" value="{{ item.level if item else '' }}" placeholder="AP / Honors / Regular"></label>
+    <label>成绩<input name="grade" value="{{ item.grade if item else '' }}"></label><label>学分<input name="credits" value="{{ item.credits if item else '' }}"></label>
+  {% elif type == 'exam' %}
+    <label>名称<select name="exam_name" data-exam-name>{{ ui.options(schemas.EXAM_NAMES, item.exam_name if item else 'TOEFL') }}</select></label><label>日期<input type="date" name="exam_date" value="{{ item.exam_date.isoformat() if item and item.exam_date else '' }}"></label>
+    <input type="hidden" name="exam_time_node" value="未添加时间信息"><input type="hidden" name="status" value="已完成">
+    <label data-exam-for="TOEFL">Appointment No.<input name="appointment_number" value="{{ item.appointment_number if item else '' }}"></label>
+    <label data-exam-for="SAT">SAT Record Location<input name="record_locator" value="{{ item.record_locator if item else '' }}"></label>
+    <label data-exam-for="AP">AP 科目<input name="subject" value="{{ item.subject if item else '' }}"></label>
+    <label data-exam-for="TOEFL SAT ACT AP">总分<input name="total" value="{{ item.total if item else '' }}"></label>
+    <div class="form-section-title" data-exam-for="TOEFL SAT ACT">分项分数</div>
+    <label data-exam-for="TOEFL SAT ACT"><span data-reading-label>R</span><input name="reading" value="{{ item.reading if item else '' }}"></label>
+    <label data-exam-for="TOEFL">L<input name="listening" value="{{ item.listening if item else '' }}"></label><label data-exam-for="TOEFL">S<input name="speaking" value="{{ item.speaking if item else '' }}"></label>
+    <label data-exam-for="TOEFL ACT">W<input name="writing" value="{{ item.writing if item else '' }}"></label><label data-exam-for="SAT ACT"><span data-math-label>Math</span><input name="math" value="{{ item.math if item else '' }}"></label>
+    <label data-exam-for="ACT">S<input name="science" value="{{ item.science if item else '' }}"></label><label data-exam-for="ACT">E<input name="english" value="{{ item.english if item else '' }}"></label>
+  {% endif %}
+  <div class="form-actions"><button class="button primary" type="submit">保存</button></div>
+</form></section>
+{% endblock %}

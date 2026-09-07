@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}{{ '导入预览' if token else ('编辑沟通记录' if record else '新增沟通记录') }}{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>{{ '沟通PDF导入预览' if token else ('编辑沟通记录' if record else '新增沟通记录') }}</h1><p>{{ student.name }} · 核对基础信息和每条项目，可移除不需要的条目。</p></div></div>
+{% if error %}<div class="notice" role="alert">{{ error }}</div>{% endif %}
+{% if name_mismatch %}<div class="notice">PDF中的姓名“{{ source_name }}”与当前学生“{{ student.name }}”不一致，请核对归属。</div>{% endif %}
+<form method="post" action="{% if token %}/students/{{ student.id }}/communications/import/confirm{% elif record %}/students/{{ student.id }}/communications/{{ record.id }}/edit{% else %}/students/{{ student.id }}/communications/new{% endif %}" class="communication-form">
+{% if token %}<input type="hidden" name="token" value="{{ token }}">{% endif %}
+<section class="panel"><div class="section-head"><h2>学员基础信息</h2></div><div class="form-grid">
+<label>学生姓名<input value="{{ source_name or student.name }}" readonly></label>
+<label>来自学校<input name="school_snapshot" maxlength="200" value="{{ payload.get('school_snapshot','') }}"></label>
+<label>所在年级<input name="grade_snapshot" maxlength="50" value="{{ payload.get('grade_snapshot','') }}"></label>
+<label>沟通日期<input type="date" name="date" required value="{{ payload.get('date','') }}"></label>
+<label>沟通时长<input name="duration" maxlength="80" placeholder="例如：30分钟" value="{{ payload.get('duration','') }}"></label>
+<label>沟通方式<input name="method" maxlength="50" placeholder="例如：线上语音" value="{{ payload.get('method','') }}"></label>
+</div></section>
+{% for section,title in sections.items() %}
+<section class="panel" data-communication-section="{{ section }}"><div class="section-head"><h2>{{ title }}</h2><button type="button" class="button" data-add-item="{{ section }}">添加项目</button></div>
+<div class="communication-items">
+{% for item in payload.get('items',[]) if item.section == section %}<div class="communication-item"><label>项目<input name="{{ section }}_name" maxlength="1000" value="{{ item.item_name }}"></label><label>反馈<textarea name="{{ section }}_feedback" rows="4" maxlength="20000">{{ item.feedback }}</textarea></label><button type="button" class="table-action danger" data-remove-item>移除此条</button></div>{% endfor %}
+</div>
+<template><div class="communication-item"><label>项目<input name="{{ section }}_name" maxlength="1000"></label><label>反馈<textarea name="{{ section }}_feedback" rows="4" maxlength="20000"></textarea></label><button type="button" class="table-action danger" data-remove-item>移除此条</button></div></template>
+</section>{% endfor %}
+<section class="panel"><label>备注<textarea name="notes" rows="5" maxlength="30000">{{ payload.get('notes','') }}</textarea></label>
+{% if payload.get('summary') or payload.get('generated_tasks') %}<p>旧记录内容仍会保留：{{ payload.get('summary','') }} {{ payload.get('generated_tasks','') }}</p>{% endif %}
+{% if name_mismatch %}<label class="check-label"><input type="checkbox" name="confirm_name" value="yes" required>我已核对，确认这份记录属于 {{ student.name }}</label>{% endif %}
+<div class="head-actions"><button type="submit" class="button primary">{{ '确认导入' if token else '保存记录' }}</button>{% if token %}<button type="submit" formaction="/students/{{ student.id }}/communications/import/cancel" formnovalidate>取消导入</button>{% else %}<a class="button" href="/students/{{ student.id }}#communications">取消</a>{% endif %}</div></section>
+</form>
+<script>
+ document.querySelectorAll('[data-add-item]').forEach(button => button.addEventListener('click', () => {
+   const section = button.closest('[data-communication-section]');
+   section.querySelector('.communication-items').append(section.querySelector('template').content.cloneNode(true));
+ }));
+ document.querySelector('.communication-form').addEventListener('click', event => {
+   const button = event.target.closest('[data-remove-item]');
+   if(button) button.closest('.communication-item').remove();
+ });
+</script>
+{% endblock %}

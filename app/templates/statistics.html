@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% import "_controls.html" as ui %}
+{% block title %}数据统计{% endblock %}
+{% macro rate(value) %}{{ ('%.1f%%'|format(value * 100)) if value is not none else '-' }}{% endmacro %}
+{% block content %}
+<div class="page-head"><div><h1>数据统计</h1></div></div>
+
+<div class="two-col">
+  <section class="panel">
+    <div class="section-head"><h2>按学校查询</h2></div>
+    <form class="filters statistics-filter" method="get">
+      <input type="hidden" name="student_id" value="{{ filters.student_id or '' }}"><input type="hidden" name="status" value="{{ filters.status }}">
+      <input name="school" list="school-options" value="{{ filters.school }}" placeholder="请输入学校名称">
+      <datalist id="school-options">{% for name in school_names %}<option value="{{ name }}">{% endfor %}</datalist>
+      <button class="button primary" type="submit">查询</button>
+    </form>
+    <table class="statistics-query-table"><thead><tr><th>姓名</th><th>批次/类型</th><th>状态</th></tr></thead><tbody>
+      {% for item in school_results %}<tr><td><a href="/students/{{ item.student.id }}">{{ item.student.name }}</a></td><td>{{ item.program_type }}</td><td>{{ ui.status_badge(item.status) }}</td></tr>
+      {% else %}<tr><td colspan="3" class="empty">{{ '未找到对应申请记录' if filters.school else '输入学校名称开始查询' }}</td></tr>{% endfor %}
+    </tbody></table>
+  </section>
+  <section class="panel">
+    <div class="section-head"><h2>按学生状态查询</h2></div>
+    <form class="filters statistics-filter" method="get">
+      <input type="hidden" name="school" value="{{ filters.school }}">
+      {{ ui.student_select(students, filters.student_id) }}
+      <select name="status"><option value="">请输入状态</option>{{ ui.options(application_statuses, filters.status) }}</select>
+      <button class="button primary" type="submit">查询</button>
+    </form>
+    <table class="statistics-query-table"><thead><tr><th>对应状态学校</th><th>类型</th><th>截止时间</th></tr></thead><tbody>
+      {% for item in status_results %}<tr><td><a href="/applications/{{ item.id }}/edit">{{ item.program_name }}</a></td><td>{{ item.program_type }}</td><td>{{ display_time(item.deadline, item.deadline_time_node) }}</td></tr>
+      {% else %}<tr><td colspan="3" class="empty">{{ '未找到对应学校' if filters.student_id and filters.status else '选择学生和状态开始查询' }}</td></tr>{% endfor %}
+    </tbody></table>
+  </section>
+</div>
+
+<section class="panel statistics-panel">
+  <table class="statistics-table">
+    <thead><tr><th>姓名</th><th>申请总数</th><th class="metric-green">录取数</th><th>名义录取率</th><th class="metric-red">拒绝数</th><th>名义拒绝率</th><th>有效申请</th><th>实际录取率</th><th>实际拒绝率</th><th>进度校验</th><th class="final-school-col">最终定校</th></tr></thead>
+    <tbody>
+      {% for row in rows %}
+      <tr>
+        <td><a href="/students/{{ row.student.id }}">{{ row.student.name }}</a></td><td>{{ row.total }}</td><td>{{ row.accepted }}</td><td>{{ rate(row.nominal_acceptance_rate) }}</td><td>{{ row.rejected }}</td><td>{{ rate(row.nominal_rejection_rate) }}</td><td>{{ row.effective }}</td><td>{{ rate(row.actual_acceptance_rate) }}</td><td>{{ rate(row.actual_rejection_rate) }}</td><td>{{ rate(row.progress_rate) }}</td><td class="final-school-col">{{ row.final_school or '-' }}</td>
+      </tr>
+      {% else %}<tr><td colspan="11" class="empty">暂无学生数据</td></tr>{% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

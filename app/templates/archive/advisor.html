@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% import "_controls.html" as ui %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>{{ page_title }}</h1></div>
+  {% if new_task_url %}<a class="button primary" href="{{ new_task_url }}">{{ new_task_label }}</a>{% endif %}
+</div>
+<form class="filters" method="get">
+  <input type="search" name="q" value="{{ filters.q }}" placeholder="关键词搜索">
+  {{ ui.filter_actions(request) }}
+  {{ ui.student_select(students, filters.participant, True, 'participant') }}
+  <select name="category"><option value="">全部分类</option><option value="申请系统" {% if filters.category == '申请系统' %}selected{% endif %}>申请系统</option><option value="内容审阅" {% if filters.category == '内容审阅' %}selected{% endif %}>内容审阅</option><option value="沟通" {% if filters.category == '沟通' %}selected{% endif %}>沟通</option><option value="其他" {% if filters.category == '其他' %}selected{% endif %}>其他</option></select>
+  <select name="status"><option value="">全部状态</option>{{ ui.options(schemas.TASK_STATUSES, filters.status) }}</select>
+</form>
+<section class="panel"><table><thead><tr><th>任务</th><th>学生</th><th>分类</th><th>时间</th><th>状态</th><th>优先级</th><th>说明</th><th>操作</th></tr></thead><tbody>
+  {% for task in rows %}
+  <tr class="{{ task_due_state(task) }}"><td><a href="/tasks/{{ task.id }}/edit">{{ task.title }}</a></td><td>{{ task.student.name if task.student else '顾问事项' }}</td><td>{{ task.category }}</td><td>{{ display_task_time(task) }} {{ ui.due_badge(task_due_state(task)) }}</td><td>{{ ui.status_badge(task.status) }}</td><td>{{ ui.status_badge(task.priority) }}</td><td>{{ task.description }}</td><td><a href="/tasks/{{ task.id }}/edit">编辑</a></td></tr>
+  {% else %}<tr><td colspan="8" class="empty">暂无顾问任务</td></tr>{% endfor %}
+</tbody></table></section>
+{% endblock %}

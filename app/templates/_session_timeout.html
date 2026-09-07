@@ -1,0 +1,12 @@
+<script>
+    // The server remains authoritative; also leave an idle open page at expiry.
+    const sessionExpiry = Date.parse({{ request.state.session_expires_at | tojson }});
+    function checkSessionExpiry() {
+      if (Date.now() >= sessionExpiry) window.location.replace('/login');
+    }
+    if (Number.isFinite(sessionExpiry)) {
+      setTimeout(checkSessionExpiry, Math.max(0, sessionExpiry - Date.now()));
+      window.addEventListener('pageshow', checkSessionExpiry);
+      document.addEventListener('visibilitychange', checkSessionExpiry);
+    }
+</script>

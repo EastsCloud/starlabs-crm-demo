@@ -1,0 +1,36 @@
+# Python caches and virtual environments
+__pycache__/
+*.py[cod]
+.pytest_cache/
+pytest-cache-files-*/
+.venv/
+venv/
+
+# Local secrets and editor files
+.env
+.env.*
+!.env.example
+.idea/
+.vscode/
+
+# Never commit live student data or generated database files
+data/
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+
+# Generated/local artifacts
+.tmp_xlsx_builder/
+outputs/**/*.inspect.ndjson
+/人工测试/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Local archives and private development input
+/archive/
+/docs/communication_template.pdf
+/output/
+/tmp/

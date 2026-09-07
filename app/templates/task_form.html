@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% import "_controls.html" as ui %}
+{% block title %}{{ '新增任务' if is_new else '编辑任务' }}{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>{{ '新增任务' if is_new else '编辑任务' }}</h1></div><button class="button ghost" type="button" data-history-back data-fallback="{{ next_url }}">返回</button></div>
+<section class="panel form-panel">
+  <form method="post" action="{{ action }}" class="form-grid">
+    <input type="hidden" name="next" value="{{ next_url }}">
+    <label>学生{{ ui.student_select(students, item.student_id if item else student_id) }}</label>
+    <label>任务类型<select name="category">{{ ui.options(schemas.CATEGORIES, item.category if item else '其他') }}</select></label>
+    <label class="wide">任务标题<input name="title" required value="{{ item.title if item and not is_new else '' }}"></label>
+    <label>状态<select name="status">{{ ui.options(schemas.TASK_STATUSES, (item.status if item else '') or 'WIP') }}</select></label>
+    <label>优先级<select name="priority">{{ ui.options(schemas.PRIORITIES, (item.priority if item else '') or '中') }}</select></label>
+    <label>日期<input type="date" name="due_date" value="{{ item.due_date.isoformat() if item and item.due_date else '' }}"></label>
+    <label>时间节点<select name="time_node">{{ ui.options(schemas.TIME_NODES, item.time_node if item and item.time_node else '未添加时间信息') }}</select></label>
+    <label class="wide">备注<textarea name="description" rows="5">{{ item.description if item and not is_new else '' }}</textarea></label>
+    <label>提醒天数<input name="reminder_days" value="{{ item.reminder_days if item and item.reminder_days else '7,1' }}" placeholder="例如 7,1"></label>
+    <div class="form-actions"><button class="button primary" type="submit">保存</button></div>
+  </form>
+</section>
+{% endblock %}

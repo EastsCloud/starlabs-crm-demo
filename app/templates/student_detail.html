@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% import "_controls.html" as ui %}
+{% import "_application_rows.html" as application_ui with context %}
+{% block title %}{{ student.name }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>{{ student.name }}</h1><p>{{ student.grade }}</p></div>
+  <div class="head-actions"><a class="button" href="/students/{{ student.id }}/archive.pdf">导出归档PDF</a>{% if request.state.user.role == "admin" %}<a class="button" href="/students/{{ student.id }}/archive-delete">删除线上档案</a>{% endif %}<a class="button primary" href="/tasks/new?student_id={{ student.id }}&next=/students/{{ student.id }}">新增任务</a><a class="button" href="/students/{{ student.id }}/edit">编辑档案</a><a class="button" href="/portal/{{ student.portal_token }}/basic" target="_blank">只读端</a><button class="button ghost" type="button" data-history-back data-fallback="/students">返回</button></div>
+</div>
+<section class="profile">
+  <div><span>年级</span><strong>{{ student.grade }}</strong></div>
+  <div><span>目标学校</span><strong>{{ student.target_school or '-' }}</strong></div>
+  <div><span>目标方向</span><strong>{{ student.target_major or '-' }}</strong></div>
+  <div><span>优先级</span><form method="post" action="/students/{{ student.id }}/priority" {% if student.priority_level == '中' and student.priority_direction != 'down' %}data-priority-prompt="true"{% endif %}><input type="hidden" name="next" value="/students/{{ student.id }}"><input type="hidden" name="note"><button class="status-button" type="submit">{{ ui.status_badge(student.priority_level) }}</button></form></div>
+  <div><span>备注</span><strong>{{ student.notes or '-' }}</strong></div>
+  <div><span>最近更新</span><strong>{{ student.updated_at.strftime('%Y-%m-%d') if student.updated_at else '-' }}</strong></div>
+</section>
+<section class="panel"><div class="section-head"><h2>基本信息</h2></div><div class="info-grid">
+  <div><span>出生日期</span><strong>{{ student.birth_date.strftime('%Y-%m-%d') if student.birth_date else '-' }}</strong></div><div><span>电话</span><strong>{{ student.phone or '-' }}</strong></div>
+  <div><span>地址</span><strong>{{ student.address or '-' }}</strong></div><div><span>中文地址</span><strong>{{ student.chinese_address or '-' }}</strong></div>
+  <div><span>身份证号码</span><strong>{{ student.national_id_number or '-' }}</strong></div><div><span>护照号码</span><strong>{{ student.passport_number or '-' }}</strong></div>
+  <div><span>护照签发日期</span><strong>{{ student.passport_issue_date.strftime('%Y-%m-%d') if student.passport_issue_date else '-' }}</strong></div><div><span>护照到期日期</span><strong>{{ student.passport_expiry_date.strftime('%Y-%m-%d') if student.passport_expiry_date else '-' }}</strong></div>
+  <div><span>信用卡卡主姓名</span><strong>{{ student.credit_card_holder or '-' }}</strong></div><div><span>持卡人电话</span><strong>{{ student.cardholder_phone or '-' }}</strong></div>
+  <div><span>通道</span><strong>{{ student.card_channel or '-' }}</strong></div><div><span>存款证明金额（美元）</span><strong>{{ student.bank_certificate_amount or '-' }}</strong></div>
+  <div><span>卡号</span><strong class="sensitive-value" data-sensitive-value="{{ student.card_number or '-' }}">{{ '••••••••' if student.card_number else '-' }}</strong>{% if student.card_number %}<button class="sensitive-toggle" type="button">显示</button>{% endif %}</div>
+  <div><span>有效期</span><strong class="sensitive-value" data-sensitive-value="{{ student.card_expiry or '-' }}">{{ '•••••' if student.card_expiry else '-' }}</strong>{% if student.card_expiry %}<button class="sensitive-toggle" type="button">显示</button>{% endif %}</div>
+</div></section>
+<section class="panel application-panel"><div class="section-head"><h2>申请信息</h2><div class="head-actions"><a class="button" href="/applications/new?student_id={{ student.id }}&next=/students/{{ student.id }}">新增</a></div></div>
+  <table class="application-table"><thead><tr><th>申请学校</th><th>国家</th><th>批次</th><th>申请状态</th><th>截止时间</th><th>网申情况</th><th>Portal情况</th><th>标化递送</th><th>操作</th></tr></thead><tbody>
+  {{ application_ui.rows(student, '/students/' ~ student.id) }}</tbody></table>
+</section>
+<section class="panel"><div class="section-head"><h2>选课信息</h2><div class="head-actions"><a class="button" href="/courses/new?student_id={{ student.id }}&next=/students/{{ student.id }}">新增</a></div></div>
+  <table><thead><tr><th>学期</th><th>课程分类</th><th>名称</th><th>等级</th><th>成绩</th><th>学分</th><th>操作</th></tr></thead><tbody>{% for item in student.courses %}<tr><td>{{ item.semester }}</td><td>{{ item.category }}</td><td>{{ item.name }}</td><td>{{ item.level or '-' }}</td><td>{{ item.grade or '-' }}</td><td>{{ item.credits or '-' }}</td><td class="actions"><a href="/courses/{{ item.id }}/edit?next=/students/{{ student.id }}">编辑</a><form method="post" action="/courses/{{ item.id }}/delete" data-confirm="确认删除选课信息？"><input type="hidden" name="next" value="/students/{{ student.id }}"><button>删除</button></form></td></tr>{% else %}<tr><td colspan="7" class="empty">暂无选课信息</td></tr>{% endfor %}</tbody></table>
+</section>
+<section class="panel"><div class="section-head"><h2>标化记录</h2><div class="head-actions"><a class="button" href="/exams/new?student_id={{ student.id }}&next=/students/{{ student.id }}">新增</a></div></div>
+  <table><thead><tr><th>名称</th><th>日期</th><th>详细信息</th><th>总分</th><th>分项分数</th><th>操作</th></tr></thead><tbody>{% for item in student.exams %}<tr><td>{{ item.exam_name }}</td><td>{{ item.exam_date.strftime('%Y-%m-%d') if item.exam_date else '-' }}</td><td>{{ exam_detail(item) }}</td><td>{{ item.total or item.score or '-' }}</td><td>{{ exam_component_scores(item) }}</td><td class="actions"><a href="/exams/{{ item.id }}/edit?next=/students/{{ student.id }}">编辑</a><form method="post" action="/exams/{{ item.id }}/delete" data-confirm="确认删除标化记录？"><input type="hidden" name="next" value="/students/{{ student.id }}"><button>删除</button></form></td></tr>{% else %}<tr><td colspan="6" class="empty">暂无标化记录</td></tr>{% endfor %}</tbody></table>
+</section>
+<section class="panel" id="communications"><div class="section-head"><h2>沟通记录</h2><div class="head-actions"><a class="button" href="/students/{{ student.id }}/communications/import">导入沟通PDF</a><a class="button primary" href="/students/{{ student.id }}/communications/new">新增沟通记录</a></div></div>
+<table><thead><tr><th>沟通日期</th><th>时长</th><th>方式</th><th>内容摘要</th><th>操作</th></tr></thead><tbody>{% for record in communication_rows %}<tr><td>{{ record.date or '-' }}</td><td>{{ record.duration or '-' }}</td><td>{{ record.method or '-' }}</td><td>{{ (record.notes or record.summary or (record.items[0].feedback if record.items else '') or '-') | truncate(90) }}</td><td class="actions"><a href="/students/{{ student.id }}/communications/{{ record.id }}">查看</a><a href="/students/{{ student.id }}/communications/{{ record.id }}/edit">编辑</a><a href="/students/{{ student.id }}/communications/{{ record.id }}.pdf">导出PDF</a><form method="post" action="/students/{{ student.id }}/communications/{{ record.id }}/delete" data-confirm="确认删除这条沟通记录？"><button>删除</button></form></td></tr>{% else %}<tr><td colspan="5" class="empty">暂无沟通记录</td></tr>{% endfor %}</tbody></table></section>
+<section class="panel"><div class="section-head"><h2>任务</h2></div>
+  <table class="task-table"><thead><tr><th>任务</th><th>学生</th><th>类型</th><th>时间</th><th>状态</th><th>优先级</th></tr></thead><tbody>{% for task in student.tasks %}<tr class="{{ task_due_state(task) }}"><td><a href="/tasks/{{ task.id }}/edit?next=/students/{{ student.id }}">{{ task.title }}</a></td><td>{{ student.name }}</td><td>{{ task.category }}</td><td>{{ display_task_time(task) }} {{ ui.due_badge(task_due_state(task)) }}</td><td><form method="post" action="/tasks/{{ task.id }}/status"><input type="hidden" name="next" value="/students/{{ student.id }}"><button class="status-button">{{ ui.status_badge(task.status) }}</button></form></td><td><form method="post" action="/tasks/{{ task.id }}/priority"><input type="hidden" name="next" value="/students/{{ student.id }}"><button class="status-button">{{ ui.status_badge(task.priority) }}</button></form></td></tr>{% else %}<tr><td colspan="6" class="empty">暂无任务</td></tr>{% endfor %}</tbody></table>
+</section>
+<script>
+  (function () {
+    const storageKey = "sensitive-refresh:" + window.location.pathname;
+    const values = Array.from(document.querySelectorAll(".sensitive-value"));
+    const buttons = Array.from(document.querySelectorAll(".sensitive-toggle"));
+    const navEntry = performance.getEntriesByType("navigation")[0];
+    let visible = navEntry && navEntry.type === "reload" && sessionStorage.getItem(storageKey) === "1";
+    function render() {
+      values.forEach(function (value) {
+        if (value.dataset.sensitiveValue === "-") { value.textContent = "-"; return; }
+        if (visible) value.textContent = value.dataset.sensitiveValue;
+        else value.textContent = "•".repeat(Math.max(3, Math.min(8, value.dataset.sensitiveValue.length)));
+      });
+      buttons.forEach(button => button.textContent = visible ? "隐藏" : "显示");
+      sessionStorage.setItem(storageKey, visible ? "1" : "0");
+    }
+    buttons.forEach(button => button.addEventListener("click", function () { visible = !visible; render(); }));
+    window.addEventListener("pageshow", function (event) { if (event.persisted) { visible = false; render(); } });
+    render();
+  })();
+</script>
+{% endblock %}

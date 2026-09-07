@@ -1,0 +1,36 @@
+{% macro rows(student, next_url) %}
+{% import "_controls.html" as ui %}
+{% for item in student.applications %}
+<tr>
+  <td>{{ item.program_name }}</td>
+  <td>{{ item.country or '-' }}</td><td>{{ item.batch or item.country_batch or '-' }}</td>
+  <td><form method="post" action="/applications/{{ item.id }}/status"><input type="hidden" name="next" value="{{ next_url }}"><select class="auto-submit compact-select" name="status">{{ ui.options(schemas.APPLICATION_STATUSES, item.status) }}</select></form></td>
+  <td>{{ item.deadline.strftime('%Y-%m-%d') if item.deadline else '-' }}</td>
+  <td><div class="application-summary"><form method="post" action="/applications/{{ item.id }}/quick/form_status"><input type="hidden" name="next" value="{{ next_url }}"><button class="status-button" type="submit">{{ ui.status_badge(item.form_status or item.online_application_status or 'WIP') }}</button></form><form method="post" action="/applications/{{ item.id }}/expand/online"><input type="hidden" name="next" value="{{ next_url }}"><button class="expand-link" type="submit">{{ '收起' if item.online_details_expanded else '展开' }}</button></form></div></td>
+  <td><div class="application-summary"><form method="post" action="/applications/{{ item.id }}/quick/portal_material_progress"><input type="hidden" name="next" value="{{ next_url }}"><select class="auto-submit compact-select mini-select" name="value">{{ ui.options(schemas.PORTAL_PROGRESS_OPTIONS, item.portal_material_progress or item.portal_status or '0%') }}</select></form><form method="post" action="/applications/{{ item.id }}/expand/portal"><input type="hidden" name="next" value="{{ next_url }}"><button class="expand-link" type="submit">{{ '收起' if item.portal_details_expanded else '展开' }}</button></form></div></td>
+  <td><div class="application-summary"><form method="post" action="/applications/{{ item.id }}/quick/score_delivery_status"><input type="hidden" name="next" value="{{ next_url }}"><button class="status-button" type="submit">{{ ui.status_badge(item.score_delivery_status or 'WIP') }}</button></form><form method="post" action="/applications/{{ item.id }}/expand/delivery"><input type="hidden" name="next" value="{{ next_url }}"><button class="expand-link" type="submit">{{ '收起' if item.delivery_details_expanded else '展开' }}</button></form></div></td>
+  <td class="actions"><a href="/applications/{{ item.id }}/edit?next={{ next_url }}">编辑</a><form method="post" action="/applications/{{ item.id }}/delete" data-confirm="确认删除申请信息？"><input type="hidden" name="next" value="{{ next_url }}"><button>删除</button></form></td>
+</tr>
+{% if item.online_details_expanded %}
+<tr class="expanded-detail-row"><td colspan="9"><form method="post" action="/applications/{{ item.id }}/details/online"><input type="hidden" name="next" value="{{ next_url }}"><div class="detail-table-scroll"><table class="nested-detail-table"><thead><tr><th>填表状态</th><th>提交日期</th><th>是否补充文书</th><th>是否需要成绩单</th><th>网申系统</th><th>用户名</th><th>密码</th><th></th></tr></thead><tbody><tr>
+  <td><select name="form_status">{{ ui.options(schemas.APPLICATION_FORM_STATUSES, item.form_status or item.online_application_status or 'WIP') }}</select></td>
+  <td><input type="date" name="submission_date" value="{{ item.submission_date.isoformat() if item.submission_date else '' }}"></td>
+  <td><input class="table-checkbox auto-submit-checkbox" type="checkbox" name="supplemental_essay" {% if item.supplemental_essay in ['Y','是','true','1'] %}checked{% endif %}></td>
+  <td><input class="table-checkbox auto-submit-checkbox" type="checkbox" name="transcript_required" {% if item.transcript_required in ['Y','是','true','1'] %}checked{% endif %}></td>
+  <td><input name="application_system" value="{{ item.application_system }}"></td><td><input name="application_username" value="{{ item.application_username }}"></td><td><input name="application_password" value="{{ item.application_password }}"></td><td><button class="button small-button primary" type="submit">保存</button></td>
+</tr></tbody></table></div></form></td></tr>
+{% endif %}
+{% if item.portal_details_expanded %}
+<tr class="expanded-detail-row"><td colspan="9"><form method="post" action="/applications/{{ item.id }}/details/portal"><input type="hidden" name="next" value="{{ next_url }}"><div class="detail-table-scroll"><table class="nested-detail-table portal-detail-table"><thead><tr><th>Portal ID</th><th>Portal密码</th><th>材料进度</th><th>Q1</th><th>A1</th><th>Q2</th><th>A2</th><th>Q3</th><th>A3</th><th>Q4</th><th>A4</th><th>Q5</th><th>A5</th><th></th></tr></thead><tbody><tr>
+  <td><input name="portal_id" value="{{ item.portal_id }}"></td><td><input name="portal_password" value="{{ item.portal_password }}"></td><td><select name="portal_material_progress">{{ ui.options(schemas.PORTAL_PROGRESS_OPTIONS, item.portal_material_progress or item.portal_status or '0%') }}</select></td>
+  {% for number in range(1, 6) %}<td><input name="portal_q{{ number }}" value="{{ item|attr('portal_q' ~ number) or '' }}"></td><td><input name="portal_a{{ number }}" value="{{ item|attr('portal_a' ~ number) or '' }}"></td>{% endfor %}
+  <td><button class="button small-button primary" type="submit">保存</button></td>
+</tr></tbody></table></div></form></td></tr>
+{% endif %}
+{% if item.delivery_details_expanded %}
+<tr class="expanded-detail-row"><td colspan="9"><form method="post" action="/applications/{{ item.id }}/details/delivery"><input type="hidden" name="next" value="{{ next_url }}"><div class="detail-table-scroll"><table class="nested-detail-table"><thead><tr><th>递送状态</th><th>CEEB Code</th><th>语言T/D送分</th><th>SAT送分</th><th>ACT Code</th><th>ACT送分</th><th>AP送分</th><th>其他</th><th>递送日期</th><th></th></tr></thead><tbody><tr>
+  <td><select name="score_delivery_status">{{ ui.options(schemas.SCORE_DELIVERY_STATUSES, item.score_delivery_status or 'WIP') }}</select></td><td><input name="ceeb_code" value="{{ item.ceeb_code }}"></td><td><input name="language_delivery" value="{{ item.language_delivery }}"></td><td><input name="sat_delivery" value="{{ item.sat_delivery }}"></td><td><input name="act_code" value="{{ item.act_code }}"></td><td><input name="act_delivery" value="{{ item.act_delivery }}"></td><td><input name="ap_delivery" value="{{ item.ap_delivery }}"></td><td><input name="other_delivery" value="{{ item.other_delivery }}"></td><td><input type="date" name="delivery_date" value="{{ item.delivery_date.isoformat() if item.delivery_date else '' }}"></td><td><button class="button small-button primary" type="submit">保存</button></td>
+</tr></tbody></table></div></form></td></tr>
+{% endif %}
+{% else %}<tr><td colspan="9" class="empty">暂无申请信息</td></tr>{% endfor %}
+{% endmacro %}

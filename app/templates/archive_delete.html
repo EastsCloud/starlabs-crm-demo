@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block title %}删除线上档案{% endblock %}
+{% block content %}<div class="page-head"><h1>删除线上档案</h1><a class="button" href="/students/{{ student.id }}">返回档案</a></div>
+{% if error %}<div class="notice" role="alert">{{ error }}</div>{% endif %}
+<section class="panel"><h2>{{ student.name }}</h2><p>此操作会永久删除该学生及关联的申请、课程、标化、项目、任务、时间点和沟通记录。审计日志会保留。</p><p>浏览器下载成功不代表已保存到NAS。请先将归档PDF保存至NAS并核验内容，再计算该文件的SHA-256。</p><a class="button" href="/students/{{ student.id }}/archive.pdf">导出归档PDF</a>
+{% if receipt %}<p>最近归档编号：{{ receipt.id }} · {{ receipt.created_at.strftime('%Y-%m-%d %H:%M') }} UTC</p><p>校验值：<code class="checksum">{{ receipt.sha256 }}</code></p>
+<form method="post" action="/students/{{ student.id }}/delete" data-confirm="确认永久删除该学生及所有关联线上记录？此操作不可撤销。"><input type="hidden" name="archive_id" value="{{ receipt.id }}"><label>输入学生完整姓名<input name="student_name" required autocomplete="off"></label><label>输入NAS文件的SHA-256<input name="sha256" required pattern="[a-fA-F0-9]{64}" maxlength="64" autocomplete="off"></label><label class="check-label"><input type="checkbox" name="nas_confirm" value="yes" required>我已将PDF保存至NAS，并核验归档内容及文件校验值</label><button class="button danger-button" type="submit">确认永久删除</button></form>
+{% else %}<p>尚无导出记录。完成导出与NAS保存后，再返回此页确认。</p>{% endif %}</section>{% endblock %}

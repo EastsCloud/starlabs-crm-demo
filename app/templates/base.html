@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}申请管理系统{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', path='/style.css') }}?v=20260906">
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="user-brand">
+      <img class="user-avatar" src="{{ url_for('static', path='/starlabs.jpg') }}" alt="用户头像" width="40" height="40">
+      <strong title="{{ request.state.user.username if request.state.user else '' }}">{{ request.state.user.username if request.state.user else '' }}</strong>
+    </div>
+    <nav>
+      {% if request.state.user and request.state.user.role == 'admin' %}<a href="/accounts">账号管理</a>{% endif %}
+      <a href="/">近期重点</a>
+      <a href="/important-items">重要事项</a>
+      <a href="/statistics">数据统计</a>
+      <a href="/timeline">时间线</a>
+      <a href="/students">学生</a>
+      <a href="/tasks">任务</a>
+      <a href="/data-engine">公开取数引擎</a>
+      <a href="/import">导入学生</a>
+      <a class="database-nav" href="/database">数据库</a>
+    </nav>
+    <div class="sidebar-tools">
+      <form method="post" action="/logout"><button type="submit">退出登录</button></form>
+    </div>
+  </aside>
+  <main class="content">{% block content %}{% endblock %}</main>
+  <div class="loading-overlay" aria-live="polite" aria-busy="true"><div class="loading-card"><span class="loading-spinner"></span><strong>正在处理…</strong></div></div>
+  {% include "_session_timeout.html" %}
+  <script>
+    const timeNodes = {{ schemas.TIME_NODES | tojson }};
+    const studentGrades = {
+      {% for student in students %}"{{ student.id }}": "{{ student.grade }}"{% if not loop.last %},{% endif %}{% endfor %}
+    };
+    function inferNode(gradeText, value) {
+      if (!value) return "未添加时间信息";
+      const parts = value.split("-").map(Number);
+      const year = parts[0];
+      const month = parts[1];
+      let currentGrade = 11;
+      if ((gradeText || "").includes("10")) currentGrade = 10;
+      if ((gradeText || "").includes("12")) currentGrade = 12;
+      const now = new Date();
+      const currentStart = now.getMonth() + 1 >= 9 ? now.getFullYear() : now.getFullYear() - 1;
+      const targetStart = month >= 9 ? year : year - 1;
+      const grade = currentGrade + targetStart - currentStart;
+      if (grade <= 9) return "10年级前";
+      if (grade >= 13 || (grade === 12 && month < 9)) return "12年级上学期后";
+      if (month === 7 || month === 8) return grade === 10 ? "10-11暑假" : "11-12暑假";
+      if (month >= 9) return grade + "年级上学期";
+      if (month === 1) return grade + "年级寒假";
+      return grade + "年级下学期";
+    }
+    function academicStartYear(gradeText) {
+      const now = new Date();
+      const currentGrade = (gradeText || "").includes("10") ? 10 : ((gradeText || "").includes("12") ? 12 : 11);
+      const currentGradeStartYear = now.getMonth() + 1 >= 9 ? now.getFullYear() : now.getFullYear() - 1;
+      return currentGradeStartYear - (currentGrade - 10);
+    }
+    function isoDate(year, month, day) {
+      return String(year).padStart(4, "0") + "-" + String(month).padStart(2, "0") + "-" + String(day).padStart(2, "0");
+    }
+    function nodeStartDate(gradeText, node) {
+      if (!node || node === "未添加时间信息") return "";
+      const grade10Year = academicStartYear(gradeText);
+      if (node === "10年级前") return isoDate(grade10Year - 1, 9, 1);
+      if (node === "10-11暑假") return isoDate(grade10Year + 1, 7, 1);
+      if (node === "11-12暑假") return isoDate(grade10Year + 2, 7, 1);
+      if (node === "12年级上学期后") return isoDate(grade10Year + 3, 1, 1);
+      for (const grade of [10, 11, 12]) {
+        const year = grade10Year + (grade - 10);
+        if (node === grade + "年级上学期") return isoDate(year, 9, 1);
+        if (node === grade + "年级寒假") return isoDate(year + 1, 1, 1);
+        if (node === grade + "年级下学期") return isoDate(year + 1, 2, 1);
+      }
+      return "";
+    }
+    function bindDateNode(dateName, nodeName) {
+      const dateInput = document.querySelector(`[name="${dateName}"]`);
+      const nodeSelect = document.querySelector(`[name="${nodeName}"]`);
+      const studentSelect = document.querySelector('[name="student_id"]');
+      if (!dateInput || !nodeSelect) return;
+      dateInput.addEventListener("change", function () {
+        const grade = studentSelect ? studentGrades[studentSelect.value] : "";
+        nodeSelect.value = inferNode(grade, dateInput.value);
+      });
+      nodeSelect.addEventListener("change", function () {
+        const grade = studentSelect ? studentGrades[studentSelect.value] : "";
+        const value = nodeStartDate(grade, nodeSelect.value);
+        if (value && !dateInput.value) dateInput.value = value;
+      });
+    }
+    [["due_date","time_node"],["start_date","start_time_node"],["end_date","end_time_node"],["deadline","deadline_time_node"],["result_date","result_time_node"],["exam_date","exam_time_node"],["date","date_time_node"],["next_follow_up","follow_up_time_node"]].forEach(pair => bindDateNode(pair[0], pair[1]));
+
+    document.querySelectorAll(".nav-group").forEach(function (group) {
+      const key = "nav:" + group.dataset.navKey;
+      const saved = localStorage.getItem(key);
+      if (saved === "open") group.open = true;
+      if (saved === "closed") group.open = false;
+      const setLabel = () => group.querySelector(".toggle-label").textContent = group.open ? "收起" : "展开";
+      setLabel();
+      group.addEventListener("toggle", function () {
+        localStorage.setItem(key, group.open ? "open" : "closed");
+        setLabel();
+      });
+    });
+    document.addEventListener("submit", function (event) {
+      if (event.target.dataset.confirm && !confirm(event.target.dataset.confirm)) event.preventDefault();
+      if (event.target.dataset.priorityPrompt === "true") {
+        const note = prompt("即将切换为高优先级，可填写备注（可以留空）：", "");
+        if (note === null) { event.preventDefault(); return; }
+        const field = event.target.querySelector('[name="note"]');
+        if (field) field.value = note;
+      }
+      if (!event.defaultPrevented && event.target.dataset.loading) {
+        const overlay = document.querySelector(".loading-overlay");
+        overlay.querySelector("strong").textContent = event.target.dataset.loading;
+        overlay.classList.add("visible");
+      }
+    });
+    document.querySelectorAll("form.filters").forEach(function (form) {
+      form.querySelectorAll("select").forEach(field => field.addEventListener("change", () => form.requestSubmit()));
+    });
+    document.querySelectorAll("select.auto-submit").forEach(field => field.addEventListener("change", () => field.form.requestSubmit()));
+    document.querySelectorAll("input.auto-submit-checkbox").forEach(field => field.addEventListener("change", () => field.form.requestSubmit()));
+    document.querySelectorAll("[data-history-back]").forEach(function (button) {
+      button.addEventListener("click", function () {
+        const fallback = button.dataset.fallback || "/";
+        if (document.referrer) {
+          try {
+            if (new URL(document.referrer).origin === window.location.origin) { history.back(); return; }
+          } catch (_) {}
+        }
+        window.location.href = fallback;
+      });
+    });
+    const scrollKey = "page-scroll:" + window.location.pathname;
+    if (history.scrollRestoration) history.scrollRestoration = "manual";
+    const savedScroll = sessionStorage.getItem(scrollKey);
+    if (savedScroll !== null && !window.location.hash) requestAnimationFrame(() => window.scrollTo(0, Number(savedScroll) || 0));
+    window.addEventListener("beforeunload", () => sessionStorage.setItem(scrollKey, String(window.scrollY)));
+    document.querySelectorAll("[data-exam-name]").forEach(function (selector) {
+      const updateExamFields = () => {
+        const name = selector.value.toUpperCase();
+        selector.closest("form").querySelectorAll("[data-exam-for]").forEach(function (field) {
+          field.hidden = !field.dataset.examFor.split(" ").includes(name);
+        });
+        selector.closest("form").querySelectorAll("[data-reading-label]").forEach(label => label.textContent = name === "SAT" ? "R&W" : "R");
+        selector.closest("form").querySelectorAll("[data-math-label]").forEach(label => label.textContent = name === "ACT" ? "M" : "Math");
+      };
+      selector.addEventListener("change", updateExamFields);
+      updateExamFields();
+    });
+    document.querySelectorAll("[data-toggle-import]").forEach(function (button) {
+      button.addEventListener("click", function () {
+        const fields = button.closest("[data-import-group]").querySelectorAll('input[type="checkbox"]');
+        const shouldCheck = Array.from(fields).some(field => !field.checked);
+        fields.forEach(field => field.checked = shouldCheck);
+        button.textContent = shouldCheck ? "取消全选" : "全选";
+      });
+    });
+  </script>
+</body>
+</html>

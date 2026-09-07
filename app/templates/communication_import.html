@@ -1,0 +1,6 @@
+{% extends "base.html" %}
+{% block title %}导入沟通PDF{% endblock %}
+{% block content %}<div class="page-head"><div><h1>导入沟通PDF</h1><p>当前学生：{{ student.name }}</p></div><a class="button" href="/students/{{ student.id }}#communications">返回档案</a></div>
+{% if error %}<div class="notice" role="alert">{{ error }}</div>{% endif %}
+<section class="panel"><p>上传固定版式的文本型沟通PDF，最大5MB、10页。解析后先核对预览，确认才保存；暂不支持扫描件。</p>
+<form method="post" action="/students/{{ student.id }}/communications/import/preview" enctype="multipart/form-data"><label>沟通PDF<input type="file" name="file" accept="application/pdf" required></label><button class="button primary">解析并预览</button></form></section>{% endblock %}

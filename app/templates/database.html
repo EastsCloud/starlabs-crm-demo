@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}数据库{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>数据库</h1></div></div>
+{% if request.query_params.get('reset') %}<div class="notice success-notice">数据库已重置，并已自动备份原数据库。</div>{% endif %}
+{% if request.query_params.get('seeded') %}<div class="notice success-notice">测试数据已加载完成。</div>{% endif %}
+<form class="filters" method="get"><input type="search" name="q" value="{{ filters.q }}" placeholder="关键词搜索"><button class="button primary" type="submit">搜索</button><a class="button ghost" href="/database">清除</a></form>
+<div class="database-columns">
+  <section class="panel database-panel">
+    <div class="section-head"><h2>学校</h2></div>
+    <div class="database-list-scroll"><table class="database-table school-database-table"><thead><tr><th>国家/地区</th><th>学校</th><th>CEEB/代码</th><th>ACT</th></tr></thead><tbody>
+      {% for item in rows if item.category not in ['申请系统', 'AP科目名称'] %}<tr><td>{% if item.category == '学校清单合集' %}-{% else %}<span class="reference-category">{{ item.category }}</span>{% endif %}</td><td>{% if item.url %}<a href="{{ item.url }}" target="_blank" rel="noopener">{{ item.name }}</a>{% else %}{{ item.name }}{% endif %}</td><td>{{ item.code or '-' }}</td><td>{{ item.secondary_code or '-' }}</td></tr>{% else %}<tr><td colspan="4" class="empty">暂无学校数据</td></tr>{% endfor %}
+    </tbody></table></div>
+  </section>
+  <section class="panel database-panel">
+    <div class="section-head"><h2>其他</h2></div>
+    <div class="database-list-scroll"><table class="database-table other-database-table"><thead><tr><th>分类</th><th>名称</th></tr></thead><tbody>
+      {% for item in rows if item.category in ['申请系统', 'AP科目名称'] %}<tr><td><span class="reference-category">{{ 'AP' if item.category == 'AP科目名称' else item.category }}</span></td><td>{% if item.url %}<a href="{{ item.url }}" target="_blank" rel="noopener">{{ item.name }}</a>{% else %}{{ item.name }}{% endif %}</td></tr>{% else %}<tr><td colspan="2" class="empty">暂无其他数据</td></tr>{% endfor %}
+    </tbody></table></div>
+  </section>
+</div>
+{% endblock %}

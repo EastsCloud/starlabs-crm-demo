@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% import "_controls.html" as ui %}
+{% block title %}公开取数引擎{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>公开取数引擎</h1></div><a class="button primary" href="/data-engine/sources/new">新增数据源</a></div>
+<form class="filters data-engine-filters" method="get">
+  <input type="search" name="q" value="{{ filters.q }}" placeholder="关键词搜索">
+  {{ ui.filter_actions(request) }}
+  <select name="category"><option value="">全部类型</option>{{ ui.options(schemas.PUBLIC_EVENT_CATEGORIES, filters.category) }}</select>
+</form>
+<section class="panel"><div class="section-head"><h2>数据源</h2></div><table><thead><tr><th>名称</th><th>类型</th><th>官网</th><th>刷新间隔</th><th>最近检查</th><th>结果</th><th>操作</th></tr></thead><tbody>{% for source in sources %}<tr><td>{{ source.name }}</td><td>{{ source.category }}</td><td><a href="{{ source.url }}" target="_blank" rel="noopener">打开官网</a></td><td>{{ source.refresh_hours }}小时</td><td>{{ source.last_checked_at.strftime('%Y-%m-%d %H:%M') if source.last_checked_at else '-' }}</td><td>{{ source.last_status }}{% if source.last_error %}<small class="error-text">{{ source.last_error }}</small>{% endif %}</td><td class="actions"><form method="post" action="/data-engine/sources/{{ source.id }}/refresh"><input type="hidden" name="next" value="{{ current_url }}"><button class="action-neutral">抓取</button></form><a href="/data-engine/sources/{{ source.id }}/edit">编辑</a><form method="post" action="/data-engine/sources/{{ source.id }}/delete" data-confirm="删除数据源会同时删除其抓取日期，确认删除？"><input type="hidden" name="next" value="{{ current_url }}"><button>删除</button></form></td></tr>{% else %}<tr><td colspan="7" class="empty">没有匹配的数据源</td></tr>{% endfor %}</tbody></table></section>
+<section class="panel"><div class="section-head"><h2>抓取到的重要日期</h2></div>
+{% for event in events %}<article class="event-card"><div class="event-main"><div><span class="badge blue">{{ event.category }}</span> <span class="badge">{{ event.date_kind }}</span><h3>{{ event.title }}</h3><p><strong>{{ event.event_date.strftime('%Y-%m-%d') }}</strong> · {{ event.review_status }} · <a href="{{ event.source_url }}" target="_blank" rel="noopener">来源</a></p><small>{{ event.source_text }}</small></div></div>
+  <div class="event-actions">
+    <form method="post" action="/data-engine/events/{{ event.id }}/timeline"><button class="button" type="submit">加入为公共时间点</button></form>
+    <form method="post" action="/data-engine/events/{{ event.id }}/tasks" class="event-task-form"><select name="student_id" required><option value="">选择学生</option>{% for student in students %}<option value="{{ student.id }}">{{ student.name }}</option>{% endfor %}</select><button class="button primary" type="submit">创建为任务</button></form>
+    <a class="button" href="/data-engine/events/{{ event.id }}/important-item">保存为重要事项</a>
+  </div></article>
+{% else %}<div class="empty">没有匹配的重要日期</div>{% endfor %}</section>
+{% endblock %}

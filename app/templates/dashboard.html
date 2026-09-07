@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% import "_controls.html" as ui %}
+{% block title %}近期重点{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>近期重点</h1></div></div>
+<section class="stats-grid">
+  <a class="stat" href="/students"><strong>{{ student_count }}</strong><span>学生</span></a>
+  <a class="stat danger" href="/students?priority=高"><strong>{{ high_priority_count }}</strong><span>高优先级学生</span></a>
+  <a class="stat" href="/important-items"><strong>{{ important_item_count }}</strong><span>重要事项</span></a>
+  <a class="stat" href="/tasks"><strong>{{ task_count }}</strong><span>任务</span></a>
+  <a class="stat danger" href="#follow-up"><strong>{{ follow_up_count }}</strong><span>需要跟进</span></a>
+</section>
+<div class="dashboard-sections">
+  <section class="panel important-dashboard-panel">
+    <div class="section-head"><h2>重要事项</h2></div>
+    <table class="compact-table"><thead><tr><th>类型</th><th>内容</th><th>参与人</th><th>日期</th><th>提醒</th></tr></thead><tbody>
+      {% for item in important_items %}<tr><td>{{ item.item_type }}</td><td>{{ item.content }}</td><td>{{ item.participants or '-' }}</td><td>{{ item.date.strftime('%Y-%m-%d') if item.date else '-' }}</td><td>{{ item.reminder or '-' }}</td></tr>
+      {% else %}<tr><td colspan="5" class="empty">暂无重要事项</td></tr>{% endfor %}
+    </tbody></table>
+  </section>
+  <section class="panel high-priority-panel">
+    <div class="section-head"><h2>高优先级学生</h2></div>
+    <div class="scroll-panel">
+    <table class="dashboard-full-table">
+      <thead><tr><th>姓名</th><th>年级</th><th>目标学校</th><th>目标方向</th><th>备注</th><th>优先级</th><th>最近更新</th></tr></thead>
+      <tbody>
+        {% for student in high_priority_students %}
+        <tr>
+          <td><a href="/students/{{ student.id }}">{{ student.name }}</a></td>
+          <td>{{ student.grade }}</td>
+          <td>{{ student.target_school or '-' }}</td>
+          <td>{{ student.target_major or '-' }}</td>
+          <td>{{ student.notes or '-' }}</td>
+          <td><form method="post" action="/students/{{ student.id }}/priority"><input type="hidden" name="next" value="/"><input type="hidden" name="note"><button class="status-button">{{ ui.status_badge(student.priority_level) }}</button></form></td>
+          <td>{{ student.updated_at.strftime('%Y-%m-%d') if student.updated_at else '-' }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7" class="empty">暂无高优先级学生</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    </div>
+  </section>
+  <section class="panel follow-up-panel" id="follow-up">
+    <div class="section-head"><h2>需要跟进</h2></div>
+    <div class="scroll-panel">
+    <table>
+      <thead><tr><th>任务</th><th>学生</th><th>类型</th><th>时间</th><th>状态</th><th>优先级</th></tr></thead>
+      <tbody>
+        {% for task in follow_up_tasks %}
+        <tr class="{{ task_due_state(task) }}">
+          <td><a href="/tasks/{{ task.id }}/edit">{{ task.title }}</a></td>
+          <td>{{ task.student.name if task.student else '未指定' }}</td>
+          <td>{{ task.category }}</td>
+          <td>{{ display_task_time(task) }} {{ ui.due_badge(task_due_state(task)) }}</td>
+          <td><form method="post" action="/tasks/{{ task.id }}/status"><input type="hidden" name="next" value="/"><button class="status-button">{{ ui.status_badge(task.status) }}</button></form></td>
+          <td><form method="post" action="/tasks/{{ task.id }}/priority"><input type="hidden" name="next" value="/"><button class="status-button">{{ ui.status_badge(task.priority) }}</button></form></td>
+        </tr>
+        {% else %}
+        <tr><td colspan="6" class="empty">暂无需要跟进的内容</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    </div>
+  </section>
+</div>
+{% endblock %}

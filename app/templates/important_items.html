@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% import "_controls.html" as ui %}
+{% block title %}重要事项{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>重要事项</h1></div><a class="button primary" href="/important-items/new">新增重要事项</a></div>
+<form class="filters important-filters" method="get">
+  <input type="search" name="q" value="{{ filters.q }}" placeholder="关键词搜索">
+  {{ ui.filter_actions(request) }}
+  <select name="item_type"><option value="">全部类型</option>{{ ui.options(schemas.IMPORTANT_ITEM_TYPES, filters.item_type) }}</select>
+</form>
+<section class="panel"><table class="compact-table"><thead><tr><th>类型</th><th>内容</th><th>参与人</th><th>日期</th><th>提醒</th><th>操作</th></tr></thead><tbody>
+{% for item in rows %}<tr><td>{{ item.item_type }}</td><td>{{ item.content }}</td><td>{{ item.participants or '-' }}</td><td>{{ item.date.strftime('%Y-%m-%d') if item.date else '-' }}</td><td>{{ item.reminder or '-' }}</td><td class="actions"><a href="/important-items/{{ item.id }}/edit">编辑</a><form method="post" action="/important-items/{{ item.id }}/delete" data-confirm="确认删除该重要事项？"><button>删除</button></form></td></tr>
+{% else %}<tr><td colspan="6" class="empty">暂无重要事项</td></tr>{% endfor %}</tbody></table></section>
+{% endblock %}

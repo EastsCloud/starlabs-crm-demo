@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% import "_controls.html" as ui %}
+{% block title %}学生{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>学生</h1></div><a class="button primary" href="/students/new">新增学生</a></div>
+<form class="filters students-filters" method="get">
+  <input type="search" name="q" value="{{ q }}" placeholder="关键词搜索">
+  {{ ui.filter_actions(request) }}
+  <select name="grade"><option value="">全部年级</option>{{ ui.options(grades, grade) }}</select>
+  <select name="priority"><option value="">全部优先级</option>{{ ui.options(schemas.PRIORITIES, priority) }}</select>
+</form>
+<section class="panel students-panel"><table class="students-table">
+  <thead><tr><th>姓名</th><th>年级</th><th>目标学校</th><th>目标方向</th><th>备注</th><th>优先级</th><th>最近更新</th><th>操作</th></tr></thead>
+  <tbody>{% for student in rows %}
+    <tr><td><a href="/students/{{ student.id }}">{{ student.name }}</a></td><td>{{ student.grade }}</td><td>{{ student.target_school }}</td><td>{{ student.target_major }}</td><td>{{ student.notes }}</td><td><form method="post" action="/students/{{ student.id }}/priority" {% if student.priority_level == '中' and student.priority_direction != 'down' %}data-priority-prompt="true"{% endif %}><input type="hidden" name="next" value="{{ request.url.path }}{% if request.url.query %}?{{ request.url.query }}{% endif %}"><input type="hidden" name="note"><button class="status-button">{{ ui.status_badge(student.priority_level) }}</button></form></td><td>{{ student.updated_at.strftime('%Y-%m-%d') if student.updated_at else '-' }}</td><td class="actions"><a href="/students/{{ student.id }}">查看</a><a href="/students/{{ student.id }}/edit">编辑</a>{% if request.state.user.role == "admin" %}<a class="danger-link" href="/students/{{ student.id }}/archive-delete">删除</a>{% endif %}</td></tr>
+  {% else %}<tr><td colspan="8" class="empty">没有匹配学生</td></tr>{% endfor %}</tbody>
+</table></section>
+{% endblock %}
