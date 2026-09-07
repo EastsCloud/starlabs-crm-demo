@@ -139,7 +139,7 @@ def test_new_pages_render_with_temporary_database():
 
 def test_import_route_previews_multiple_files_and_is_idempotent():
     init_db()
-    workbook_path = Path(__file__).parents[1] / "outputs" / "import_test" / "bulk_test_template.xlsx"
+    workbook_path = Path(__file__).parent / "fixtures" / "bulk_test_template.xlsx"
     workbook_bytes = workbook_path.read_bytes()
     db = SessionLocal()
     try:

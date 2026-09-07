@@ -22,7 +22,7 @@ data/
 
 # Generated/local artifacts
 .tmp_xlsx_builder/
-outputs/**/*.inspect.ndjson
+/outputs/
 /人工测试/
 
 # OS files

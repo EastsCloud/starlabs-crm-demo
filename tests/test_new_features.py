@@ -94,7 +94,7 @@ def test_import_selection_filters_individual_fields_and_records():
 
 def test_bulk_workbook_contains_full_import_test_data():
     from pathlib import Path
-    content = (Path(__file__).parents[1] / "outputs" / "import_test" / "bulk_test_template.xlsx").read_bytes()
+    content = (Path(__file__).parent / "fixtures" / "bulk_test_template.xlsx").read_bytes()
     payload = parse_template_workbook(content)
     assert len(payload["students"]) == 24
     assert all(len(row["applications"]) == 3 for row in payload["students"])
