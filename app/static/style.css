@@ -578,7 +578,9 @@ label input, label select, label textarea { color: var(--ink); font-weight: 400;
 .credential-details summary { font-size: 14px; color: var(--blue); cursor: pointer; }
 .record-details > summary { font-size: 14px; color: var(--blue); cursor: pointer; }
 .record-details[open] > summary { margin-bottom: 20px; }
-.student-nav summary { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border-radius: 6px; color: #dce8ff; cursor: pointer; list-style: none; }
+.student-nav summary { display: flex; align-items: center; justify-content: space-between; padding: 0; border-radius: 6px; color: #dce8ff; cursor: pointer; list-style: none; }
+.student-nav summary a { flex: 1; min-width: 0; }
+.student-nav .nav-chevron { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 40px; align-self: stretch; }
 .student-nav summary::-webkit-details-marker { display: none; }
 .student-nav summary:hover { background: rgba(255,255,255,.1); }
 .student-nav[open] .nav-chevron { transform: rotate(90deg); }

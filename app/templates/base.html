@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}申请管理系统{% endblock %}</title>
-  <link rel="stylesheet" href="{{ url_for('static', path='/style.css') }}?v=20260920b">
+  <link rel="stylesheet" href="{{ url_for('static', path='/style.css') }}?v=20260920c">
 </head>
 <body>
   <aside class="sidebar">
@@ -19,8 +19,8 @@
       <a href="/statistics">数据统计</a>
       <a href="/timeline">时间线</a>
       <details class="student-nav">
-        <summary><span>全部学生</span><span class="nav-chevron" aria-hidden="true">›</span></summary>
-        <div class="subnav"><a href="/students">全部学生列表</a><a href="/students?student_type=school">美初美高学生</a><a href="/students?student_type=college">美本学生</a></div>
+        <summary><a href="/students" data-student-list>全部学生</a><span class="nav-chevron" aria-hidden="true">›</span></summary>
+        <div class="subnav"><a href="/students?student_type=college">美本学生</a><a href="/students?student_type=school">美初美高学生</a></div>
       </details>
       <a href="/tasks">任务</a>
       <a href="/data-engine">公开取数引擎</a>
@@ -102,16 +102,17 @@
     }
     [["due_date","time_node"],["start_date","start_time_node"],["end_date","end_time_node"],["deadline","deadline_time_node"],["result_date","result_time_node"],["exam_date","exam_time_node"],["date","date_time_node"],["next_follow_up","follow_up_time_node"]].forEach(pair => bindDateNode(pair[0], pair[1]));
 
-    document.querySelectorAll(".nav-group").forEach(function (group) {
-      const key = "nav:" + group.dataset.navKey;
-      const saved = localStorage.getItem(key);
-      if (saved === "open") group.open = true;
-      if (saved === "closed") group.open = false;
-      const setLabel = () => group.querySelector(".toggle-label").textContent = group.open ? "收起" : "展开";
-      setLabel();
-      group.addEventListener("toggle", function () {
-        localStorage.setItem(key, group.open ? "open" : "closed");
-        setLabel();
+    document.querySelectorAll(".student-nav").forEach(function (group) {
+      const key = "nav:students";
+      try { group.open = localStorage.getItem(key) === "open"; } catch (_) {}
+      const saveState = () => {
+        try { localStorage.setItem(key, group.open ? "open" : "closed"); } catch (_) {}
+      };
+      group.addEventListener("toggle", saveState);
+      group.querySelector("[data-student-list]").addEventListener("click", function () {
+        group.open = true;
+        // Save before link navigation; the native toggle event can arrive later.
+        saveState();
       });
     });
     document.addEventListener("submit", function (event) {
