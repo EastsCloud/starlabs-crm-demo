@@ -10,6 +10,7 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, LongTable, TableStyle, PageBreak, Image
 from app.communication_pdf import SECTIONS
+from app import school_fields
 
 ROOT = Path(__file__).resolve().parent
 FONT = 'NotoSansSC'
@@ -120,12 +121,26 @@ def archive_pdf(student, timelines, archive_id, exported_at):
     story=header('学生综合归档')
     story += [para(student.name,24),Spacer(1,14),para(f'归档编号：{archive_id}'),para(f'导出时间（UTC）：{exported_at:%Y-%m-%d %H:%M:%S}'),Spacer(1,18),section('基本信息'),Spacer(1,10)]
     basics=[('name','学生姓名'),('grade','年级'),('target_school','目标学校'),('target_major','目标方向'),('final_school','录取学校'),('advisor','顾问'),('priority_level','优先级'),('overall_status','整体状态'),('notes','备注')]
+    if student.student_type == "school":
+        basics = [(key, label) for key, label in basics if key not in ("grade", "target_school", "target_major")]
+        basics.insert(1, ("enrollment_year", "入学年份"))
+        basics.extend((f.name, f.label) for f in school_fields.BASIC_FIELDS if not f.private)
     story += [grid([[label,getattr(student,key,None)] for key,label in basics],[110,WIDTH-110],False),Spacer(1,12),para('此归档不含证件号码、银行卡资料、账号密码、Portal密钥或安全问答。下载不代表已保存至NAS。',8)]
     applications=sorted(student.applications,key=lambda r:(r.deadline or date.max,r.id))
-    story += records_section('申请信息',applications,[('program_name','学校/项目'),('program_type','类型'),('country','国家'),('batch','批次'),('status','状态'),('deadline','截止日期'),('deadline_time_node','截止节点'),('result_date','结果日期'),('result_time_node','结果节点'),('result','结果'),('materials_status','材料状态'),('next_step','下一步'),('form_status','网申填表'),('online_application_status','网申状态'),('submission_date','提交日期'),('supplemental_essay','补充文书'),('transcript_required','成绩单'),('application_system','网申系统'),('portal_material_progress','Portal进度'),('portal_status','Portal状态'),('score_delivery_status','送分状态'),('ceeb_code','CEEB Code'),('language_delivery','语言送分'),('sat_delivery','SAT送分'),('act_code','ACT Code'),('act_delivery','ACT送分'),('ap_delivery','AP送分'),('other_delivery','其他递送'),('delivery_date','递送日期'),('notes','备注')],'program_name')
-    story += records_section('选课信息',sorted(student.courses,key=lambda r:(r.semester or '',r.id)),[('semester','学期'),('category','类别'),('name','课程'),('level','等级'),('grade','成绩'),('credits','学分')],'name')
-    story += records_section('标化记录',sorted(student.exams,key=lambda r:(r.exam_date or date.min,r.id),reverse=True),[(k,v) for k,v in [('exam_name','考试'),('exam_date','日期'),('exam_time_node','时间节点'),('subject','科目'),('score','成绩'),('total','总分'),('target_score','目标成绩'),('reading','阅读'),('listening','听力'),('speaking','口语'),('writing','写作'),('math','数学'),('science','科学'),('english','英语'),('component_score','分项成绩'),('appointment_number','预约编号'),('record_locator','考试记录编号'),('status','状态'),('next_action','后续行动'),('notes','备注')]],'exam_name')
-    story += records_section('项目与活动',sorted(student.projects,key=lambda r:(r.start_date or date.max,r.id)),[('project_name','项目'),('project_type','类型'),('status','状态'),('start_date','开始日期'),('start_time_node','开始节点'),('end_date','结束日期'),('end_time_node','结束节点'),('outcome','成果'),('risk_level','风险'),('notes','备注')],'project_name')
+    if student.student_type == 'school':
+        story += records_section('申请信息', applications, [(f.name, f.label) for f in school_fields.APPLICATION_FIELDS if not f.private], 'program_name')
+    else:
+        story += records_section('申请信息',applications,[('program_name','学校/项目'),('program_type','类型'),('country','国家'),('batch','批次'),('status','状态'),('deadline','截止日期'),('deadline_time_node','截止节点'),('result_date','结果日期'),('result_time_node','结果节点'),('result','结果'),('materials_status','材料状态'),('next_step','下一步'),('form_status','网申填表'),('online_application_status','网申状态'),('submission_date','提交日期'),('supplemental_essay','补充文书'),('transcript_required','成绩单'),('application_system','网申系统'),('portal_material_progress','Portal进度'),('portal_status','Portal状态'),('score_delivery_status','送分状态'),('ceeb_code','CEEB Code'),('language_delivery','语言送分'),('sat_delivery','SAT送分'),('act_code','ACT Code'),('act_delivery','ACT送分'),('ap_delivery','AP送分'),('other_delivery','其他递送'),('delivery_date','递送日期'),('notes','备注')],'program_name')
+    if student.student_type != 'school' or student.courses:
+        story += records_section('选课信息',sorted(student.courses,key=lambda r:(r.semester or '',r.id)),[('semester','学期'),('category','类别'),('name','课程'),('level','等级'),('grade','成绩'),('credits','学分')],'name')
+    story += records_section('标化记录',sorted(student.exams,key=lambda r:(r.exam_date or date.min,r.id),reverse=True),[(k,v) for k,v in [('exam_name','考试'),('exam_date','日期'),('exam_time_node','时间节点'),('subject','科目'),('score','成绩'),('total','总分'),('target_score','目标成绩'),('reading','阅读'),('listening','听力'),('speaking','口语'),('writing','写作'),('math','数学'),('science','科学'),('english','英语'),('language','Language'),('verbal','SSAT V'),('quantitative','SSAT Q'),('analytical','SSAT A'),('component_score','分项成绩'),('appointment_number','预约编号'),('record_locator','考试记录编号'),('status','状态'),('next_action','后续行动'),('notes','备注')]],'exam_name')
+    if student.student_type != 'school' or student.projects:
+        story += records_section('项目与活动',sorted(student.projects,key=lambda r:(r.start_date or date.max,r.id)),[('project_name','项目'),('project_type','类型'),('status','状态'),('start_date','开始日期'),('start_time_node','开始节点'),('end_date','结束日期'),('end_time_node','结束节点'),('outcome','成果'),('risk_level','风险'),('notes','备注')],'project_name')
+    if student.student_type == 'school':
+        for kind in ['activities','third-party-interviews','school-meetings','training-records']:
+            title, fields = school_fields.RECORD_FIELDS[kind]
+            records = list(getattr(student, school_fields.RELATIONS[kind]))
+            story += records_section(title, records, [(f.name, f.label) for f in fields if not f.private])
     story += records_section('全部任务（含已完成）',sorted(student.tasks,key=lambda r:(r.due_date or date.max,r.id)),[('title','任务'),('category','类别'),('owner','负责人'),('status','状态'),('priority','优先级'),('due_date','日期'),('time_node','时间节点'),('description','说明')],'title')
     story += records_section('时间点与时间线',sorted(timelines,key=lambda r:(r.date or date.max,r.id)),[('content','内容'),('owner','负责人'),('period','时段'),('category','类别'),('status','状态'),('date','日期'),('time_node','节点'),('notes','备注')],'content')
     story += [PageBreak(),section('全部沟通记录'),Spacer(1,12)]

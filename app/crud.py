@@ -33,6 +33,10 @@ def exam_detail(exam):
 
 def exam_component_scores(exam):
     name = (exam.exam_name or "").upper()
+    if name == "TOEFL JUNIOR":
+        return " / ".join(f"{label}: {value or '-'}" for label, value in [("Listening", exam.listening), ("Language", exam.language), ("Reading", exam.reading)])
+    if name == "SSAT":
+        return " / ".join(f"{label}: {value or '-'}" for label, value in [("V", exam.verbal), ("Q", exam.quantitative), ("A", exam.analytical)])
     values = {
         "TOEFL": [exam.reading, exam.listening, exam.speaking, exam.writing],
         "SAT": [exam.reading, exam.math],
@@ -41,6 +45,25 @@ def exam_component_scores(exam):
     if not values:
         return "-"
     return " / ".join(value or "-" for value in values)
+
+
+def school_exam_high_scores(exams):
+    """Show the best recorded total without conflating the two TOEFL scales."""
+    from decimal import Decimal, InvalidOperation
+    best = {}
+    for exam in exams:
+        if exam.exam_name not in ("TOEFL", "TOEFL Junior", "SSAT"):
+            continue
+        value = exam.total or exam.score
+        try:
+            score = Decimal(value or "")
+        except InvalidOperation:
+            continue
+        if not score.is_finite():
+            continue
+        if exam.exam_name not in best or score > best[exam.exam_name][0]:
+            best[exam.exam_name] = (score, value)
+    return [(name, best[name][1] if name in best else "-") for name in ("TOEFL Junior", "TOEFL", "SSAT")]
 
 
 def normalize_application_detail_fields(db):
@@ -89,6 +112,8 @@ def infer_time_node(student, value, today=None):
     value = parse_date(value)
     if not value:
         return "未添加时间信息"
+    if student and student.student_type == "school":
+        return "未添加时间信息"
     current_grade = grade_number(student)
     today = today or date.today()
     current_start = today.year if today.month >= 9 else today.year - 1
@@ -119,6 +144,8 @@ def academic_start_year(student, today=None):
 
 def time_node_start_date(student, node, today=None):
     if not node or node == "未添加时间信息":
+        return None
+    if student and student.student_type == "school":
         return None
     grade_10_year = academic_start_year(student, today)
     if node == "10年级前":
@@ -240,13 +267,17 @@ def delete(db: Session, obj):
     db.commit()
 
 
-def get_students(db: Session, q=None, grade=None, priority=None):
+def get_students(db: Session, q=None, grade=None, priority=None, student_type=None):
     query = db.query(models.Student)
+    if student_type:
+        query = query.filter(models.Student.student_type == student_type)
     if q:
         like = f"%{q.strip()}%"
         query = query.filter(or_(
             models.Student.name.ilike(like),
             models.Student.grade.ilike(like),
+            models.Student.enrollment_year.ilike(like),
+            models.Student.current_school.ilike(like),
             models.Student.target_school.ilike(like),
             models.Student.target_major.ilike(like),
             models.Student.notes.ilike(like),
@@ -331,7 +362,7 @@ def normalize_task_time_fields(db: Session):
         if task.status not in schemas.TASK_STATUSES:
             task.status = "待确认" if task.status in ["等待反馈", "进行中"] else "WIP"
             changed = True
-        if task.student and task.due_date:
+        if task.student and task.due_date and task.time_node in (None, "", "未添加时间信息"):
             inferred = infer_time_node(task.student, task.due_date)
             if task.time_node != inferred:
                 task.time_node = inferred

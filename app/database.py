@@ -8,7 +8,7 @@ from sqlalchemy.engine import make_url
 from sqlalchemy.orm import declarative_base, sessionmaker
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-SCHEMA_REVISION = '20260905_02'
+SCHEMA_REVISION = '20260920_03'
 DATABASE_URL = os.environ.get('DATABASE_URL', '')
 if not DATABASE_URL:
     raise RuntimeError('DATABASE_URL is required; configure a PostgreSQL database.')

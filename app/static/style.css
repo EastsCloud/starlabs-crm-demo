@@ -255,8 +255,8 @@ label input, label select, label textarea { color: var(--ink); font-weight: 400;
   padding: 18px;
   margin-bottom: 18px;
 }
-.profile span { display: block; color: var(--muted); margin-bottom: 6px; }
-.profile strong { font-size: 16px; }
+.profile > div > span { display: block; color: var(--muted); margin-bottom: 6px; font-size: 13px; line-height: 1.5; }
+.profile strong { font-size: 14px; font-weight: 500; line-height: 1.6; overflow-wrap: anywhere; }
 .info-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -556,3 +556,31 @@ label input, label select, label textarea { color: var(--ink); font-weight: 400;
 @media(max-width: 700px) { .communication-item { grid-template-columns: 1fr; } .communication-item button { margin-top: 0; justify-self: start; } .head-actions { flex-wrap: wrap; } }
 
 .actions .danger-link { color: var(--red); }
+
+/* Student tracks share navigation and use the same record controls. */
+.student-type-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
+.student-type-tabs a { padding: 8px 16px; border-radius: 8px; background: #edf2fb; }
+.student-type-tabs a.active { background: var(--blue); color: #fff; }
+.student-type-choices { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; }
+.student-type-choice { display: grid; gap: 12px; padding: 24px; border: 1px solid #dce3ef; border-radius: 12px; }
+.student-type-choice strong { font-size: 20px; }
+.student-type-choice span { color: #657184; }
+.table-scroll { overflow-x: auto; }
+.record-text { white-space: pre-wrap; overflow-wrap: anywhere; max-width: 360px; }
+.info-grid strong { overflow-wrap: anywhere; white-space: pre-wrap; }
+/* Consistent information labels/values without preserving template indentation. */
+.info-grid { margin: 0; gap: 20px 32px; align-items: start; }
+.info-grid > div { min-width: 0; display: grid; gap: 6px; align-content: start; }
+.info-grid span { display: block; margin: 0; font-size: 13px; line-height: 1.5; color: var(--muted); font-weight: 400; }
+.info-grid strong { display: block; margin: 0; font-size: 14px; line-height: 1.6; color: var(--ink); font-weight: 500; }
+.section-head h2 { line-height: 1.4; }
+.panel > .info-grid + table { margin-top: 20px; }
+.credential-details summary { font-size: 14px; color: var(--blue); cursor: pointer; }
+.record-details > summary { font-size: 14px; color: var(--blue); cursor: pointer; }
+.record-details[open] > summary { margin-bottom: 20px; }
+.student-nav summary { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border-radius: 6px; color: #dce8ff; cursor: pointer; list-style: none; }
+.student-nav summary::-webkit-details-marker { display: none; }
+.student-nav summary:hover { background: rgba(255,255,255,.1); }
+.student-nav[open] .nav-chevron { transform: rotate(90deg); }
+.student-nav .subnav { padding-left: 12px; }
+@media (max-width: 700px) { .info-grid { gap: 16px; } }

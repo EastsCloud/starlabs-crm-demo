@@ -15,9 +15,19 @@ set "APP_ORIGIN=http://127.0.0.1:8000"
 if not defined DATABASE_URL goto missing_database
 if not defined REMEMBER_ENCRYPTION_KEY goto missing_remember_key
 
+if /i "%~1"=="migrate" goto migrate
+
 echo Starting Starlabs AMS at http://127.0.0.1:8000
+echo If the database schema is out of date, stop with Ctrl+C and run: run.bat migrate
 python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
 if errorlevel 1 goto failed
+goto end
+
+:migrate
+echo Updating the configured database schema. Make a backup before upgrading.
+python -m alembic upgrade head
+if errorlevel 1 goto failed
+echo Database migration complete. Run run.bat to start the application.
 goto end
 
 :missing_database
@@ -34,6 +44,9 @@ goto failed
 echo.
 echo Startup failed. Review the message above.
 pause
+endlocal
+exit /b 1
 
 :end
 endlocal
+exit /b 0

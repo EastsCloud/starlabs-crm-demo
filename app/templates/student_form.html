@@ -1,25 +1,32 @@
 {% extends "base.html" %}
 {% import "_controls.html" as ui %}
-{% block title %}{{ '编辑学生' if student else '新增学生' }}{% endblock %}
+{% import "_school_fields.html" as school_ui %}
+{% set student_type = student_type|default(student.student_type if student else "college") %}
+{% set school = student_type == "school" %}
+{% block title %}{{ '编辑学生' if student and student.id else '新增学生' }}{% endblock %}
 {% block content %}
-<div class="page-head"><div><h1>{{ '编辑学生' if student else '新增学生' }}</h1></div><button class="button ghost" type="button" data-history-back data-fallback="{{ '/students/' ~ student.id if student else '/students' }}">返回</button></div>
+<div class="page-head"><div><h1>{{ '编辑学生' if student and student.id else '新增学生' }}</h1></div><button class="button ghost" type="button" data-history-back data-fallback="{{ '/students/' ~ student.id if student and student.id else '/students' }}">返回</button></div>
+{% if error %}<p class="error-message" role="alert">{{ error }}</p>{% endif %}
 <section class="panel form-panel">
   <form method="post" action="{{ action }}" class="form-grid">
+    <input type="hidden" name="student_type" value="{{ student_type }}">
+    <div class="form-section-title">{{ schemas.STUDENT_TYPES[student_type] }}学生档案</div>
     <label>姓名<input name="name" required value="{{ student.name if student else '' }}"></label>
-    <label>年级<input name="grade" required value="{{ student.grade if student else '' }}" placeholder="例如 11年级"></label>
-    <label>目标学校<input name="target_school" value="{{ student.target_school if student else '' }}"></label>
+    {% if school %}<label>入学年份<input name="enrollment_year" required inputmode="numeric" pattern="[0-9]{4}" maxlength="4" value="{{ student.enrollment_year if student else '' }}" placeholder="例如 2027"></label>
+    {% else %}<label>年级<input name="grade" required value="{{ student.grade if student else '' }}" placeholder="例如 11年级"></label>{% endif %}
+    {% if not school %}<label>目标学校<input name="target_school" value="{{ student.target_school if student else '' }}"></label>
     <label>目标方向<input name="target_major" value="{{ student.target_major if student else '' }}"></label>
-    <label>优先级<select name="priority_level">{{ ui.options(schemas.PRIORITIES, student.priority_level if student else '中') }}</select></label>
+    {% endif %}<label>优先级<select name="priority_level">{{ ui.options(schemas.PRIORITIES, student.priority_level if student else '中') }}</select></label>
     <div class="form-section-title">个人与联系信息</div>
-    <label>出生日期<input type="date" name="birth_date" value="{{ student.birth_date.isoformat() if student and student.birth_date else '' }}"></label>
-    <label>电话<input name="phone" value="{{ student.phone if student else '' }}"></label>
+    <label>出生日期<input type="date" name="birth_date" value="{{ student.birth_date if student and student.birth_date else '' }}"></label>
+    {% if not school %}<label>电话<input name="phone" value="{{ student.phone if student else '' }}"></label>
     <label class="wide">地址<textarea name="address" rows="2">{{ student.address if student else '' }}</textarea></label>
     <label class="wide">中文地址<textarea name="chinese_address" rows="2">{{ student.chinese_address if student else '' }}</textarea></label>
     <label class="wide">身份证号码<input name="national_id_number" value="{{ student.national_id_number if student else '' }}"></label>
-    <div class="form-section-title">护照与申请资金</div>
+    <div class="form-section-title">{{ "护照信息" if school else "护照与申请资金" }}</div>
     <label>护照号码<input name="passport_number" value="{{ student.passport_number if student else '' }}"></label>
-    <label>护照签发日期<input type="date" name="passport_issue_date" value="{{ student.passport_issue_date.isoformat() if student and student.passport_issue_date else '' }}"></label>
-    <label>护照到期日期<input type="date" name="passport_expiry_date" value="{{ student.passport_expiry_date.isoformat() if student and student.passport_expiry_date else '' }}"></label>
+    <label>护照签发日期<input type="date" name="passport_issue_date" value="{{ student.passport_issue_date if student and student.passport_issue_date else '' }}"></label>
+    <label>护照到期日期<input type="date" name="passport_expiry_date" value="{{ student.passport_expiry_date if student and student.passport_expiry_date else '' }}"></label>
     <label>存款证明金额（美元）<input name="bank_certificate_amount" value="{{ student.bank_certificate_amount if student else '' }}"></label>
     <div class="form-section-title">信用卡信息</div>
     <label>信用卡卡主姓名<input name="credit_card_holder" value="{{ student.credit_card_holder if student else '' }}"></label>
@@ -27,6 +34,8 @@
     <label>通道<input name="card_channel" value="{{ student.card_channel if student else '' }}"></label>
     <label>卡号<input name="card_number" value="{{ student.card_number if student else '' }}"></label>
     <label>有效期<input name="card_expiry" value="{{ student.card_expiry if student else '' }}" placeholder="MM/YY"></label>
+    {% endif %}
+    {% if school %}<div class="form-section-title">申请与考试信息</div>{{ school_ui.inputs(school_fields.PROFILE_FIELDS, student) }}{% endif %}
     <label class="wide">备注<textarea name="notes" rows="4">{{ student.notes if student else '' }}</textarea></label>
     <div class="form-actions"><button class="button primary" type="submit">保存</button></div>
   </form>

@@ -4,7 +4,7 @@ import re
 
 from openpyxl import load_workbook
 
-from app import crud, models
+from app import crud, models, school_fields
 
 
 SKIP_SHEETS = {"数据统计", "模板（托福可更新新老）", "Database"}
@@ -14,7 +14,7 @@ PERSONAL_CELLS = {
     "cardholder_phone": "A20", "card_channel": "A22", "card_number": "A24", "card_expiry": "A26",
     "bank_certificate_amount": "A30", "national_id_number": "A32", "chinese_address": "A34",
 }
-DATE_FIELDS = {"birth_date", "passport_issue_date", "passport_expiry_date"}
+DATE_FIELDS = {"birth_date", "passport_issue_date", "passport_expiry_date", "css_completed_date", "css_report_date"}
 PERSONAL_LABELS = {
     "birth_date": "出生年月日", "phone": "电话", "address": "地址", "passport_number": "护照号码",
     "passport_issue_date": "护照签发日期", "passport_expiry_date": "护照到期日期", "credit_card_holder": "信用卡卡主姓名",
@@ -144,24 +144,33 @@ def merge_import_payloads(payloads):
     for payload in payloads:
         merged["warnings"].extend(payload.get("warnings", []))
         for incoming in payload.get("students", []):
-            student = by_name.get(incoming["name"])
+            identity = (incoming.get("student_type", "college"), incoming["name"])
+            student = by_name.get(identity)
             if student is None:
-                student = {"name": incoming["name"], "personal": {}, "applications": [], "exams": []}
-                by_name[incoming["name"]] = student
+                student = {"name": incoming["name"], "student_type": identity[0], "personal": {}, "applications": [], "exams": [], "interviews": []}
+                by_name[identity] = student
                 merged["students"].append(student)
+            if identity[0] == 'school':
+                old_year = student['personal'].get('enrollment_year')
+                new_year = incoming.get('personal', {}).get('enrollment_year')
+                if old_year and new_year and old_year != new_year:
+                    from fastapi import HTTPException
+                    raise HTTPException(409, '同名美初美高学生的入学年份不同，请核对姓名后分别导入。')
             for field, value in incoming.get("personal", {}).items():
                 if _is_blank(student["personal"].get(field)) and not _is_blank(value):
                     student["personal"][field] = value
             _merge_records(student["applications"], incoming.get("applications", []), lambda row: (row.get("program_name", ""), row.get("deadline", "")))
             _merge_records(student["exams"], incoming.get("exams", []), lambda row: (row.get("exam_name", ""), row.get("exam_date", ""), row.get("subject", "")))
+            _merge_records(student["interviews"], incoming.get("interviews", []), lambda row: (row.get("interview_type", ""), row.get("date", "")))
     return merged
 
 
 def preview_context():
     return {
-        "personal_labels": PERSONAL_LABELS,
+        "personal_labels": {**PERSONAL_LABELS, "enrollment_year": "入学年份", **{f.name:f.label for f in school_fields.BASIC_FIELDS}},
+        "school_application_preview_fields": [(f.name, f.label) for f in school_fields.APPLICATION_FIELDS],
         "application_preview_fields": APPLICATION_PREVIEW_FIELDS,
-        "exam_preview_fields": EXAM_PREVIEW_FIELDS,
+        "exam_preview_fields": EXAM_PREVIEW_FIELDS + [("language", "Language"), ("verbal", "V"), ("quantitative", "Q"), ("analytical", "A")],
     }
 
 
@@ -182,8 +191,9 @@ def filter_import_payload(payload, selected):
             dict(row) for index, row in enumerate(source.get("exams", []))
             if f"{prefix}e:{index}" in selected
         ]
-        if f"{prefix}student" in selected or personal or applications or exams:
-            filtered["students"].append({"name": source["name"], "personal": personal, "applications": applications, "exams": exams})
+        interviews = [dict(row) for index, row in enumerate(source.get("interviews", [])) if f"{prefix}i:{index}" in selected]
+        if f"{prefix}student" in selected or personal or applications or exams or interviews:
+            filtered["students"].append({"name": source["name"], "student_type": source.get("student_type", "college"), "personal": personal, "applications": applications, "exams": exams, "interviews": interviews})
     return filtered
 
 
@@ -206,12 +216,17 @@ def _is_blank(value):
 
 
 def apply_import(db, payload):
-    summary = {"students_created": 0, "students_updated": 0, "applications": 0, "exams": 0, "fields_filled": 0, "fields_overwritten": 0, "fields_preserved": 0}
+    summary = {"students_created": 0, "students_updated": 0, "applications": 0, "exams": 0, "interviews": 0, "fields_filled": 0, "fields_overwritten": 0, "fields_preserved": 0}
     for row in payload.get("students", []):
-        student = db.query(models.Student).filter(models.Student.name == row["name"]).first()
+        student_type = row.get("student_type", "college")
+        matches = db.query(models.Student).filter(models.Student.name == row["name"], models.Student.student_type == student_type).all()
+        if len(matches) > 1:
+            from fastapi import HTTPException
+            raise HTTPException(409, "同一分类中存在多个同名学生，请先区分姓名再导入。")
+        student = matches[0] if matches else None
         student_created = student is None
         if not student:
-            student = models.Student(name=row["name"], grade="11年级")
+            student = models.Student(name=row["name"], student_type=student_type, grade="11年级" if student_type == "college" else "")
             db.add(student)
             db.flush()
             summary["students_created"] += 1
@@ -244,7 +259,7 @@ def apply_import(db, payload):
                     models.Application.program_name == data["program_name"],
                 ).order_by(models.Application.id).first()
             if not item:
-                item = models.Application(student_id=student.id, program_name=data["program_name"])
+                item = models.Application(student_id=student.id, program_name=data["program_name"], program_type="中学" if student_type == "school" else "大学", status="WIP")
                 db.add(item)
                 item_is_new = True
             else:
@@ -252,7 +267,7 @@ def apply_import(db, payload):
             for field, value in data.items():
                 if field in {"program_name", "deadline"} or _is_blank(value):
                     continue
-                parsed_value = crud.parse_date(value) if field in {"submission_date", "delivery_date"} else value
+                parsed_value = crud.parse_date(value) if field in {"submission_date", "delivery_date", "result_date", "transcript_resubmit_date", "toefl_delivery_date", "ssat_delivery_date", "isee_delivery_date"} else value
                 old_value = getattr(item, field, None)
                 if _is_blank(old_value):
                     setattr(item, field, parsed_value)
@@ -273,6 +288,7 @@ def apply_import(db, payload):
                     summary["fields_preserved"] += 1
             if item_is_new:
                 item.deadline_time_node = "未添加时间信息"
+            db.flush()
             summary["applications"] += 1
         for data in row.get("exams", []):
             data = dict(data)
@@ -300,6 +316,23 @@ def apply_import(db, payload):
                 item.exam_time_node = crud.infer_time_node(student, exam_date)
             if _is_blank(item.score) and item.total:
                 item.score = item.total
+            db.flush()
             summary["exams"] += 1
+        for data in row.get("interviews", []):
+            day = crud.parse_date(data.get("date"))
+            item = db.query(models.ThirdPartyInterview).filter_by(student_id=student.id, interview_type=data["interview_type"], date=day).first()
+            if item is None:
+                item = models.ThirdPartyInterview(student_id=student.id, interview_type=data["interview_type"], date=day)
+                db.add(item)
+            for field in ("result", "psee_score", "pwse_score"):
+                value = data.get(field)
+                if _is_blank(value):
+                    continue
+                old = getattr(item, field)
+                key = "fields_filled" if _is_blank(old) else "fields_preserved" if old == value else "fields_overwritten"
+                summary[key] += 1
+                setattr(item, field, value)
+            db.flush()
+            summary["interviews"] += 1
     db.commit()
     return summary

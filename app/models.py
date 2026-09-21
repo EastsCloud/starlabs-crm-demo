@@ -62,6 +62,24 @@ class Student(Base, TimestampMixin):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(120), nullable=False, index=True)
     grade = Column(String(50), default="")
+    student_type = Column(String(20), nullable=False, default="college", server_default="college", index=True)
+    enrollment_year = Column(String(4), default="", server_default="")
+    birth_place = Column(String(200), default="", server_default="")
+    nationality = Column(String(100), default="", server_default="")
+    current_school = Column(String(200), default="", server_default="")
+    applying_grade = Column(String(50), default="", server_default="")
+    mother_info = Column(Text, default="", server_default="")
+    father_info = Column(Text, default="", server_default="")
+    application_email = Column(String(200), default="", server_default="")
+    parent_application_email = Column(String(200), default="", server_default="")
+    toefl_account = Column(String(200), default="", server_default="")
+    ssat_parent_account = Column(String(200), default="", server_default="")
+    ssat_student_account = Column(String(200), default="", server_default="")
+    vericant_account = Column(String(200), default="", server_default="")
+    show_and_tell = Column(Text, default="", server_default="")
+    css_completed_date = Column(Date, nullable=True)
+    css_report_date = Column(Date, nullable=True)
+    css_submitted = Column(String(20), default="", server_default="")
     target_school = Column(String(200), default="")
     target_major = Column(String(200), default="")
     advisor = Column(String(120), default="")
@@ -93,6 +111,10 @@ class Student(Base, TimestampMixin):
     courses = relationship("Course", back_populates="student", cascade="all, delete-orphan")
     communications = relationship("Communication", back_populates="student", cascade="all, delete-orphan")
     timelines = relationship("Timeline", back_populates="student", cascade="all, delete-orphan")
+    activities = relationship("StudentActivity", back_populates="student", cascade="all, delete-orphan", order_by="StudentActivity.id")
+    third_party_interviews = relationship("ThirdPartyInterview", back_populates="student", cascade="all, delete-orphan", order_by="ThirdPartyInterview.date, ThirdPartyInterview.id")
+    school_meetings = relationship("SchoolMeeting", back_populates="student", cascade="all, delete-orphan", order_by="SchoolMeeting.date, SchoolMeeting.id")
+    training_records = relationship("TrainingRecord", back_populates="student", cascade="all, delete-orphan", order_by="TrainingRecord.date, TrainingRecord.id")
 
 
 class Task(Base, TimestampMixin):
@@ -189,6 +211,24 @@ class Application(Base):
     portal_details_expanded = Column(Boolean, default=False)
     delivery_details_expanded = Column(Boolean, default=False)
 
+    school_state = Column(String(100), default="", server_default="")
+    applying_grade = Column(String(50), default="", server_default="")
+    application_url = Column(String(500), default="", server_default="")
+    application_fee = Column(String(80), default="", server_default="")
+    toefl_code = Column(String(50), default="", server_default="")
+    toefl_delivery_date = Column(Date, nullable=True)
+    toefl_delivery_score = Column(String(80), default="", server_default="")
+    ssat_code = Column(String(50), default="", server_default="")
+    ssat_delivery_date = Column(Date, nullable=True)
+    ssat_delivery_score = Column(String(80), default="", server_default="")
+    isee_code = Column(String(50), default="", server_default="")
+    isee_delivery_date = Column(Date, nullable=True)
+    isee_delivery_score = Column(String(80), default="", server_default="")
+    css_status = Column(Text, default="", server_default="")
+    school_supplemental_essay = Column(Text, default="", server_default="")
+    recommendations = Column(Text, default="", server_default="")
+    transcript_resubmit_date = Column(Date, nullable=True)
+
     student = relationship("Student", back_populates="applications")
 
 
@@ -217,6 +257,10 @@ class Exam(Base):
     record_locator = Column(String(100), default="")
     subject = Column(String(150), default="")
     component_score = Column(String(100), default="")
+    language = Column(String(30), default="", server_default="")
+    verbal = Column(String(30), default="", server_default="")
+    quantitative = Column(String(30), default="", server_default="")
+    analytical = Column(String(30), default="", server_default="")
 
     student = relationship("Student", back_populates="exams")
 
@@ -367,3 +411,49 @@ class ArchiveExport(Base):
     sha256 = Column(String(64), nullable=False)
     source_hash = Column(String(64), nullable=False)
     created_at = Column(DateTime, default=now(), nullable=False)
+
+
+class StudentActivity(Base, TimestampMixin):
+    __tablename__ = "student_activities"
+    id = Column(Integer, primary_key=True)
+    student_id = Column(Integer, ForeignKey("students.id", ondelete="CASCADE"), nullable=False, index=True)
+    name = Column(String(200), nullable=False)
+    activity_type = Column(String(30), nullable=False)
+    frequency_duration = Column(String(300), default="")
+    level = Column(String(30), default="")
+    student = relationship("Student", back_populates="activities")
+
+
+class ThirdPartyInterview(Base, TimestampMixin):
+    __tablename__ = "third_party_interviews"
+    id = Column(Integer, primary_key=True)
+    student_id = Column(Integer, ForeignKey("students.id", ondelete="CASCADE"), nullable=False, index=True)
+    interview_type = Column(String(50), nullable=False)
+    date = Column(Date, nullable=True)
+    psee_score = Column(String(80), default="")
+    pwse_score = Column(String(80), default="")
+    result = Column(Text, default="")
+    student = relationship("Student", back_populates="third_party_interviews")
+
+
+class SchoolMeeting(Base, TimestampMixin):
+    __tablename__ = "school_meetings"
+    id = Column(Integer, primary_key=True)
+    student_id = Column(Integer, ForeignKey("students.id", ondelete="CASCADE"), nullable=False, index=True)
+    school_name = Column(String(200), nullable=False)
+    date = Column(Date, nullable=True)
+    format = Column(String(30), nullable=False)
+    notes = Column(Text, default="")
+    student = relationship("Student", back_populates="school_meetings")
+
+
+class TrainingRecord(Base, TimestampMixin):
+    __tablename__ = "training_records"
+    id = Column(Integer, primary_key=True)
+    student_id = Column(Integer, ForeignKey("students.id", ondelete="CASCADE"), nullable=False, index=True)
+    date = Column(Date, nullable=True)
+    duration = Column(String(80), default="")
+    training_type = Column(String(30), nullable=False)
+    method = Column(String(20), nullable=False)
+    notes = Column(Text, default="")
+    student = relationship("Student", back_populates="training_records")

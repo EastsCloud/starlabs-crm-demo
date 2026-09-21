@@ -7,8 +7,9 @@ This public repository is a portfolio-safe snapshot of the production codebase. 
 ## Highlights
 
 - Student profiles covering core information, applications, courses, standardized tests, projects, tasks, timelines, and communication records.
+- Separate undergraduate and middle/high school profiles, including school applications, activities, interviews, coaching, TOEFL Junior and SSAT scores.
 - Dashboard views for priorities, follow-ups, important dates, and application statistics.
-- Excel student import with preview, selective field updates, and multi-file support.
+- Excel student import with preview, selective field updates, and multi-file support; school templates accept both XLS and XLSX, with a clean downloadable template.
 - Structured communication-record import from a fixed PDF layout, with editable preview and duplicate protection.
 - Student archive PDF export with sensitive credentials excluded.
 - Team authentication, administrator-managed accounts, session controls, and audit logs.

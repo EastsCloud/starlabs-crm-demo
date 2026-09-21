@@ -15,6 +15,8 @@ from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app import crud, models, schemas
+from app import school_fields
+from app.school_importer import workbook_rows, is_school_workbook, parse_school_workbook, school_template
 from app.database import SessionLocal, get_db, init_db
 from app.previews import save_preview, consume_preview
 from app.importer import apply_import, filter_import_payload, merge_import_payloads, parse_template_workbook, preview_context
@@ -26,6 +28,8 @@ from app.auth import install, bootstrap, remember_cipher
 install(app)
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 templates = Jinja2Templates(directory="app/templates")
+from app.school_records import router as school_router
+app.include_router(school_router)
 
 
 @app.on_event("startup")
@@ -62,6 +66,8 @@ def common_context(db: Session):
     return {
         "students": db.query(models.Student).order_by(models.Student.name.asc()).all(),
         "schemas": schemas,
+        "school_fields": school_fields,
+        "school_exam_high_scores": crud.school_exam_high_scores,
         "task_due_state": crud.task_due_state,
         "application_due_state": crud.application_due_state,
         "follow_up_state": crud.follow_up_state,
@@ -118,8 +124,15 @@ def update_fields(obj, data):
     return obj
 
 
-def parse_student_form(form):
-    return {
+def parse_student_form(form, existing=None):
+    student_type = form.get("student_type", existing.student_type if existing else "college")
+    if student_type not in schemas.STUDENT_TYPES:
+        raise ValueError("请选择学生分类。")
+    if existing and student_type != existing.student_type:
+        raise ValueError("学生分类在创建时确定，编辑档案不能更改分类。")
+    if not form.get("name", "").strip():
+        raise ValueError("请填写学生姓名。")
+    data = {
         "name": form.get("name", "").strip(),
         "grade": form.get("grade", "").strip(),
         "target_school": form.get("target_school", "").strip(),
@@ -141,6 +154,19 @@ def parse_student_form(form):
         "card_expiry": form.get("card_expiry", "").strip(),
         "notes": form.get("notes", "").strip(),
     }
+    # Preserve fields absent from this profile instead of clearing stored data.
+    if existing:
+        data = {key: value for key, value in data.items() if key in form}
+    data["student_type"] = student_type
+    if student_type == "school":
+        for key in ["grade", "target_school", "target_major", "phone", "address", "chinese_address", "national_id_number", "passport_number", "passport_issue_date", "passport_expiry_date", "bank_certificate_amount", "credit_card_holder", "cardholder_phone", "card_channel", "card_number", "card_expiry"]:
+            data.pop(key, None)
+        year = str(form.get("enrollment_year", "")).strip()
+        if len(year) != 4 or not year.isascii() or not year.isdigit() or not 1900 <= int(year) <= 2200:
+            raise ValueError("请填写有效的四位入学年份。")
+        data["enrollment_year"] = year
+        data.update(school_fields.parse_fields(form, school_fields.PROFILE_FIELDS))
+    return data
 
 
 MATRIX_GROUPS = [
@@ -372,37 +398,61 @@ def import_page(request: Request, db: Session = Depends(get_db)):
 
 
 @app.get("/import/template")
-def download_import_template():
+def download_import_template(student_type: str = "college"):
+    if student_type == "school":
+        return Response(school_template(), media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": 'attachment; filename="middle high school.xlsx"'})
     template_path = Path(__file__).resolve().parent.parent / "docs" / "information_template.xlsx"
     return FileResponse(template_path, filename="information_template.xlsx")
 
 
 @app.post("/import/preview")
 async def import_preview(request: Request, files: list[UploadFile] = File(...), db: Session = Depends(get_db)):
-    if not files:
-        raise HTTPException(status_code=400, detail="请至少上传一个 .xlsx 文件")
+    form = await request.form()
+    mode = form.get("student_type", "auto")
+    default_exam = form.get("school_exam_type", "TOEFL Junior")
+    if mode not in ("auto", "school", "college"):
+        raise HTTPException(400, "无效学生分类。")
+    if not files or len(files) > 20:
+        raise HTTPException(400, "请选择1至20个Excel文件。")
     payloads = []
-    for file in files:
-        if not (file.filename or "").lower().endswith(".xlsx"):
-            raise HTTPException(status_code=400, detail=f"{file.filename or '文件'} 不是 .xlsx 文件")
-        content = await file.read(20_000_001)
-        if len(content) > 20_000_000:
-            raise HTTPException(status_code=400, detail=f"{file.filename} 不能超过 20MB")
-        try:
-            payload = parse_template_workbook(content)
-        except Exception as exc:
-            raise HTTPException(status_code=400, detail=f"无法解析 {file.filename}：{exc}") from exc
-        payload["warnings"] = [f"{file.filename}：{warning}" for warning in payload.get("warnings", [])]
-        payloads.append(payload)
+    try:
+        for file in files:
+            if not (file.filename or "").lower().endswith((".xlsx", ".xls")):
+                raise ValueError("请选择.xls或.xlsx文件。")
+            content = await file.read(20_000_001)
+            if len(content) > 20_000_000:
+                raise ValueError("每个文件不能超过20MB。")
+            sheets = workbook_rows(content)
+            school = is_school_workbook(sheets)
+            if mode == "school" and not school:
+                raise ValueError("未找到美初美高模板的学生、入学年份表头。")
+            if mode == "college" and school:
+                raise ValueError("文件为美初美高模板，请选择自动识别或美初美高。")
+            if school:
+                payload = parse_school_workbook(sheets, default_exam)
+            elif content.startswith(b"PK"):
+                payload = parse_template_workbook(content)
+            else:
+                raise ValueError("美本导入请使用information_template.xlsx；.xls仅支持美初美高模板。")
+            payload["warnings"] = [f"{file.filename}：{warning}" for warning in payload.get("warnings", [])]
+            payloads.append(payload)
+    except ValueError as exc:
+        return templates.TemplateResponse("import.html", {"request": request, **common_context(db),
+            "preview": None, "token": None, "result": None, "error": str(exc)}, status_code=400)
+    except Exception:
+        return templates.TemplateResponse("import.html", {"request": request, **common_context(db),
+            "preview": None, "token": None, "result": None, "error": "无法读取Excel文件，请检查格式、加密状态和内容。"}, status_code=400)
+    finally:
+        for file in files:
+            await file.close()
     preview = merge_import_payloads(payloads)
-    existing_names = {
-        name for (name,) in db.query(models.Student.name).filter(
-            models.Student.name.in_([row["name"] for row in preview["students"]])
-        ).all()
-    }
     for row in preview["students"]:
-        row["existing"] = row["name"] in existing_names
-    preview["existing_count"] = len(existing_names)
+        matches = db.query(models.Student).filter_by(name=row["name"], student_type=row.get("student_type", "college")).all()
+        if len(matches) > 1:
+            raise HTTPException(409, "同一分类中存在多个同名学生，请先区分姓名再导入。")
+        row["existing"] = bool(matches)
+    preview["existing_count"] = sum(row["existing"] for row in preview["students"])
     token = save_preview(db, request.state.user.id, 'excel', preview)
     db.commit()
     return templates.TemplateResponse("import.html", {"request": request, **common_context(db), **preview_context(), "preview": preview, "token": token, "result": None})
@@ -620,19 +670,25 @@ def export_matrix(format: str = "csv", db: Session = Depends(get_db)):
 
 
 @app.get("/students")
-def students(request: Request, q: str | None = None, grade: str | None = None, priority: str | None = None, db: Session = Depends(get_db)):
-    return templates.TemplateResponse("students.html", {"request": request, **common_context(db), "rows": crud.get_students(db, q, grade, priority), "q": q or "", "grade": grade or "", "priority": priority or "", "grades": crud.distinct_values(db, models.Student, "grade")})
+def students(request: Request, q: str | None = None, grade: str | None = None, priority: str | None = None, student_type: str | None = None, db: Session = Depends(get_db)):
+    return templates.TemplateResponse("students.html", {"request": request, **common_context(db), "rows": crud.get_students(db, q, grade, priority, student_type), "student_type": student_type or "", "q": q or "", "grade": grade or "", "priority": priority or "", "grades": crud.distinct_values(db, models.Student, "grade")})
 
 
 @app.get("/students/new")
-def new_student(request: Request, db: Session = Depends(get_db)):
-    return templates.TemplateResponse("student_form.html", {"request": request, **common_context(db), "student": None, "action": "/students/new", "next_url": fallback_next(request, "/students")})
+def new_student(request: Request, student_type: str | None = None, db: Session = Depends(get_db)):
+    if student_type not in schemas.STUDENT_TYPES:
+        return templates.TemplateResponse("student_type_select.html", {"request": request, **common_context(db)})
+    return templates.TemplateResponse("student_form.html", {"request": request, **common_context(db), "student": None, "student_type": student_type, "action": "/students/new", "next_url": fallback_next(request, "/students")})
 
 
 @app.post("/students/new")
 async def create_student(request: Request, db: Session = Depends(get_db)):
     form = await request.form()
-    student = models.Student(**parse_student_form(form))
+    try:
+        data = parse_student_form(form)
+    except ValueError as exc:
+        return student_form_error(request, db, form, str(exc))
+    student = models.Student(**data)
     crud.commit(db, student)
     return redirect(form.get("next") or f"/students/{student.id}")
 
@@ -652,9 +708,27 @@ def edit_student(student_id: int, request: Request, db: Session = Depends(get_db
 async def update_student(student_id: int, request: Request, db: Session = Depends(get_db)):
     student = get_or_404(db, models.Student, student_id)
     form = await request.form()
-    update_fields(student, parse_student_form(form))
+    try:
+        data = parse_student_form(form, student)
+    except ValueError as exc:
+        return student_form_error(request, db, form, str(exc), student)
+    update_fields(student, data)
     crud.commit(db, student)
     return redirect(form.get("next") or f"/students/{student.id}")
+
+
+def student_form_error(request, db, form, error, student=None):
+    from types import SimpleNamespace
+    values = {c.name: getattr(student, c.name) if student else "" for c in models.Student.__table__.columns}
+    values.update(dict(form))
+    values['id'] = student.id if student else None
+    if values.get('student_type') not in schemas.STUDENT_TYPES:
+        values['student_type'] = student.student_type if student else 'college'
+    return templates.TemplateResponse("student_form.html", {
+        "request": request, **common_context(db), "student": SimpleNamespace(**values),
+        "student_type": values.get('student_type', 'college'), "error": error,
+        "action": f"/students/{student.id}/edit" if student else "/students/new",
+    }, status_code=400)
 
 
 @app.post("/students/{student_id}/priority")
@@ -671,10 +745,14 @@ async def toggle_student_priority(student_id: int, request: Request, db: Session
 
 @app.get("/portal/{token}/{section}")
 def student_portal(token: str, section: str, request: Request, db: Session = Depends(get_db)):
-    if section not in {"basic", "applications", "courses", "exams", "tasks"}:
+    if section not in {"basic", "applications", "courses", "exams", "tasks", *school_fields.RELATIONS}:
         raise HTTPException(status_code=404)
     student = db.query(models.Student).filter(models.Student.portal_token == token).first()
     if not student:
+        raise HTTPException(status_code=404)
+    if student.student_type == "school" and section == "courses":
+        raise HTTPException(status_code=404)
+    if section in school_fields.RELATIONS and section != "applications" and student.student_type != "school":
         raise HTTPException(status_code=404)
     return templates.TemplateResponse("portal_student.html", {"request": request, **common_context(db), "student": student, "section": section})
 
@@ -877,7 +955,9 @@ def project_data(form, db):
 
 def application_data(form, db):
     student_id = parse_student_id(form)
-    student = db.get(models.Student, student_id)
+    student = get_or_404(db, models.Student, student_id)
+    if student.student_type == "school":
+        raise HTTPException(400, "请从美初美高学生档案的申请信息入口填写。")
     deadline = crud.parse_date(form.get("deadline"))
     result_date = crud.parse_date(form.get("result_date"))
     text_fields = ["country_batch", "country", "batch", "portal_id", "portal_password", "portal_material_progress", "form_status", "supplemental_essay", "transcript_required", "ceeb_code", "language_delivery", "sat_delivery", "act_code", "act_delivery", "ap_delivery", "other_delivery", "application_system", "application_username", "application_password", "portal_security_qa", "portal_url", "online_application_status", "portal_status", "score_delivery_status", "portal_q1", "portal_a1", "portal_q2", "portal_a2", "portal_q3", "portal_a3", "portal_q4", "portal_a4", "portal_q5", "portal_a5"]
@@ -896,10 +976,11 @@ def exam_data(form, db):
     student_id = parse_student_id(form)
     student = db.get(models.Student, student_id)
     exam_date = crud.parse_date(form.get("exam_date"))
-    exam_name = form.get("exam_name", "TOEFL").strip().upper()
+    raw_name = form.get("exam_name", "TOEFL").strip()
+    exam_name = next((name for name in schemas.EXAM_NAMES if name.casefold() == raw_name.casefold()), raw_name)
     if exam_name not in schemas.EXAM_NAMES:
         raise HTTPException(status_code=400, detail="无效考试名称")
-    fields = ["reading", "listening", "speaking", "writing", "math", "science", "english", "total", "appointment_number", "record_locator", "subject"]
+    fields = ["reading", "listening", "speaking", "writing", "math", "science", "english", "total", "appointment_number", "record_locator", "subject", "language", "verbal", "quantitative", "analytical"]
     data = {"student_id": student_id, "exam_name": exam_name, "exam_date": exam_date, "exam_time_node": crud.resolve_time_node(form, "exam_time_node", student, exam_date), "status": form.get("status", "已完成"), "score": form.get("total", "").strip()}
     data.update({field: form.get(field, "").strip() for field in fields})
     allowed = {
@@ -907,6 +988,8 @@ def exam_data(form, db):
         "SAT": {"reading", "math", "total", "record_locator"},
         "ACT": {"math", "science", "english", "reading", "writing", "total"},
         "AP": {"subject", "total"},
+        "TOEFL Junior": {"listening", "language", "reading", "total"},
+        "SSAT": {"verbal", "quantitative", "analytical", "total"},
     }[exam_name]
     for field in fields:
         if field not in allowed:
@@ -914,6 +997,7 @@ def exam_data(form, db):
     data["component_score"] = "/".join(data[field] or "-" for field in {
         "TOEFL": ["reading", "listening", "speaking", "writing"], "SAT": ["reading", "math"],
         "ACT": ["math", "science", "english", "reading", "writing"], "AP": [],
+        "TOEFL Junior": ["listening", "language", "reading"], "SSAT": ["verbal", "quantitative", "analytical"],
     }[exam_name]) or "-"
     return data
 
@@ -1077,6 +1161,9 @@ def new_resource(resource: str, request: Request, student_id: str | None = None,
         raise HTTPException(status_code=404)
     _, _, form_type = RESOURCE_CONFIG[resource]
     student_id_value = parse_query_int(student_id)
+    selected_student = get_or_404(db, models.Student, student_id_value) if student_id_value else None
+    if resource == "applications" and selected_student and selected_student.student_type == "school":
+        return redirect(f"/students/{student_id_value}/school-records/applications/new")
     if resource == "communications" and student_id_value:
         return redirect(f"/students/{student_id_value}/communications/new")
     template_name = "record_form.html" if resource in {"applications", "exams", "courses"} else "archive/record_form.html"
@@ -1100,6 +1187,8 @@ def edit_resource(resource: str, item_id: int, request: Request, db: Session = D
         raise HTTPException(status_code=404)
     model, _, form_type = RESOURCE_CONFIG[resource]
     item = get_or_404(db, model, item_id)
+    if resource == "applications" and item.student.student_type == "school":
+        return redirect(f"/students/{item.student_id}/school-records/applications/{item.id}/edit")
     if resource == 'communications':
         return redirect(f'/students/{item.student_id}/communications/{item.id}/edit')
     template_name = "record_form.html" if resource in {"applications", "exams", "courses"} else "archive/record_form.html"
@@ -1113,6 +1202,8 @@ async def update_resource(resource: str, item_id: int, request: Request, db: Ses
     model, parser, _ = RESOURCE_CONFIG[resource]
     item = get_or_404(db, model, item_id)
     form = await request.form()
+    if resource == "applications" and item.student.student_type == "school":
+        raise HTTPException(400, "请使用美初美高申请信息编辑页面。")
     update_fields(item, parser(form, db))
     crud.commit(db, item)
     return redirect(form.get("next") or f"/{resource}")

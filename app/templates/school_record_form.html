@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% import "_school_fields.html" as fields_ui %}
+{% block title %}{{ '编辑' if editing else '新增' }}{{ title }}{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>{{ '编辑' if editing else '新增' }}{{ title }}</h1><p>{{ student.name }} · 美初美高</p></div><a class="button ghost" href="/students/{{ student.id }}#{{ kind }}">返回档案</a></div>
+{% if error %}<p class="error-message" role="alert">{{ error }}</p>{% endif %}
+<section class="panel form-panel"><form method="post" class="form-grid">
+{{ fields_ui.inputs(fields, item) }}
+<div class="form-actions"><button class="button primary" type="submit">保存</button><a class="button ghost" href="/students/{{ student.id }}#{{ kind }}">取消</a></div>
+</form></section>
+{% endblock %}

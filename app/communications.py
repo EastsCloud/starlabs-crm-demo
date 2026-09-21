@@ -189,7 +189,7 @@ def source_hash(student):
     def fields(record):
         return {c.key:str(getattr(record,c.key)) for c in inspect(type(record)).columns}
     data={'student':fields(student)}
-    for relation in ['applications','courses','exams','projects','tasks','timelines','communications']:
+    for relation in ['applications','courses','exams','projects','tasks','timelines','communications','activities','third_party_interviews','school_meetings','training_records']:
         data[relation]=[fields(record) for record in sorted(getattr(student,relation),key=lambda r:r.id)]
     data['items']=[fields(item) for record in sorted(student.communications,key=lambda r:r.id) for item in record.items]
     return hashlib.sha256(json.dumps(data,sort_keys=True,ensure_ascii=False).encode()).hexdigest()

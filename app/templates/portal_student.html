@@ -1,4 +1,7 @@
 {% import "_controls.html" as ui %}
+{% import "_school_records.html" as school_records %}
+{% import "_school_fields.html" as school_ui %}
+{% set school = student.student_type == "school" %}
 <!doctype html>
 <html lang="zh-CN">
 <head>
@@ -9,12 +12,16 @@
 </head>
 <body class="portal-body">
 <header class="portal-header">
-  <div><strong>{{ student.name }}</strong><span>{{ student.grade }}</span></div>
-  <nav>{% for key,label in [('basic','基本信息'),('applications','申请信息'),('courses','选课信息'),('exams','标化记录'),('tasks','任务')] %}<a class="{{ 'active' if section == key else '' }}" href="/portal/{{ student.portal_token }}/{{ key }}">{{ label }}</a>{% endfor %}</nav>
+  <div><strong>{{ student.name }}</strong><span>{{ "入学年份：" ~ student.enrollment_year if school else student.grade }}</span></div>
+  <nav>{% for key,label in [('basic','基本信息'),('applications','申请信息'),('courses','选课信息'),('exams','标化记录'),('tasks','任务')] %}{% if not school or key != 'courses' %}<a class="{{ 'active' if section == key else '' }}" href="/portal/{{ student.portal_token }}/{{ key }}">{{ label }}</a>{% endif %}{% endfor %}{% if school %}{% for key in ['activities','third-party-interviews','school-meetings','training-records'] %}<a class="{{ 'active' if section == key else '' }}" href="/portal/{{ student.portal_token }}/{{ key }}">{{ school_fields.RECORD_FIELDS[key][0] }}</a>{% endfor %}{% endif %}</nav>
 </header>
 <main class="portal-content">
 {% if section == 'basic' %}
-  <h1>基本信息</h1><section class="panel"><div class="info-grid"><div><span>姓名</span><strong>{{ student.name }}</strong></div><div><span>年级</span><strong>{{ student.grade }}</strong></div><div><span>电话</span><strong>{{ student.phone or '-' }}</strong></div><div><span>出生日期</span><strong>{{ student.birth_date.strftime('%Y-%m-%d') if student.birth_date else '-' }}</strong></div><div class="span-2"><span>地址</span><strong>{{ student.address or '-' }}</strong></div><div class="span-2"><span>备注</span><strong>{{ student.notes or '-' }}</strong></div></div></section>
+  {% if school %}<h1>基本信息</h1><section class="panel">{{ school_ui.information(school_fields.BASIC_FIELDS, student, false) }}</section>{% else %}
+  <h1>基本信息</h1><section class="panel"><div class="info-grid"><div><span>姓名</span><strong>{{ student.name }}</strong></div><div><span>{{ "入学年份" if school else "年级" }}</span><strong>{{ student.enrollment_year if school else student.grade }}</strong></div><div><span>电话</span><strong>{{ student.phone or '-' }}</strong></div><div><span>出生日期</span><strong>{{ student.birth_date.strftime('%Y-%m-%d') if student.birth_date else '-' }}</strong></div><div class="span-2"><span>地址</span><strong>{{ student.address or '-' }}</strong></div><div class="span-2"><span>备注</span><strong>{{ student.notes or '-' }}</strong></div></div></section>
+{% endif %}
+{% elif school and section in school_fields.RECORD_FIELDS %}
+{{ school_records.panel(student, section, school_fields.RECORD_FIELDS[section][0], school_fields.RECORD_FIELDS[section][1], student|attr(school_fields.RELATIONS[section]), true) }}
 {% elif section == 'applications' %}
   <h1>申请信息</h1><section class="panel"><table><thead><tr><th>学校</th><th>国家</th><th>批次</th><th>状态</th><th>截止时间</th><th>网申情况</th><th>Portal情况</th><th>标化递送</th></tr></thead><tbody>{% for item in student.applications %}<tr><td>{{ item.program_name }}</td><td>{{ item.country or '-' }}</td><td>{{ item.batch or '-' }}</td><td>{{ ui.status_badge(item.status) }}</td><td>{{ item.deadline.strftime('%Y-%m-%d') if item.deadline else '-' }}</td><td>{{ ui.status_badge(item.form_status or item.online_application_status or 'WIP') }}</td><td>{{ item.portal_material_progress or item.portal_status or '0%' }}</td><td>{{ ui.status_badge(item.score_delivery_status or 'WIP') }}</td></tr>{% else %}<tr><td colspan="8" class="empty">暂无信息</td></tr>{% endfor %}</tbody></table></section>
 {% elif section == 'courses' %}

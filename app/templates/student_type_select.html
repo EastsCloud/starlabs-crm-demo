@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}新增学生 · 选择分类{% endblock %}
+{% block content %}
+<div class="page-head"><h1>新增学生</h1><a class="button ghost" href="/students">返回</a></div>
+<section class="panel"><div class="section-head"><h2>选择学生分类</h2></div>
+<div class="student-type-choices">
+  <a class="student-type-choice" href="/students/new?student_type=school"><strong>美初美高</strong><span>入学年份、活动、面试、培训与中学申请</span></a>
+  <a class="student-type-choice" href="/students/new?student_type=college"><strong>美本</strong><span>年级、选课、标化与本科申请</span></a>
+</div></section>
+{% endblock %}

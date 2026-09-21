@@ -2,17 +2,19 @@
 {% import "_controls.html" as ui %}
 {% block title %}学生{% endblock %}
 {% block content %}
-<div class="page-head"><div><h1>学生</h1></div><a class="button primary" href="/students/new">新增学生</a></div>
+<div class="page-head"><div><h1>{{ schemas.STUDENT_TYPES.get(student_type, "全部") }}学生</h1></div><a class="button primary" href="/students/new{% if student_type %}?student_type={{ student_type }}{% endif %}">新增学生</a></div>
+<nav class="student-type-tabs" aria-label="学生分类"><a href="/students" class="{{ 'active' if not student_type else '' }}">全部学生</a>{% for key,label in schemas.STUDENT_TYPES.items() %}<a href="/students?student_type={{ key }}" class="{{ 'active' if student_type == key else '' }}">{{ label }}</a>{% endfor %}</nav>
 <form class="filters students-filters" method="get">
+  <input type="hidden" name="student_type" value="{{ student_type }}">
   <input type="search" name="q" value="{{ q }}" placeholder="关键词搜索">
   {{ ui.filter_actions(request) }}
-  <select name="grade"><option value="">全部年级</option>{{ ui.options(grades, grade) }}</select>
+  {% if student_type != "school" %}<select name="grade"><option value="">全部年级</option>{{ ui.options(grades, grade) }}</select>{% endif %}
   <select name="priority"><option value="">全部优先级</option>{{ ui.options(schemas.PRIORITIES, priority) }}</select>
 </form>
 <section class="panel students-panel"><table class="students-table">
-  <thead><tr><th>姓名</th><th>年级</th><th>目标学校</th><th>目标方向</th><th>备注</th><th>优先级</th><th>最近更新</th><th>操作</th></tr></thead>
+  <thead><tr><th>姓名</th><th>{{ "入学年份" if student_type == "school" else "年级 / 入学年份" }}</th><th>分类</th><th>{{ "在读学校" if student_type == "school" else "目标学校" if student_type == "college" else "目标 / 在读学校" }}</th><th>{{ "申请年级" if student_type == "school" else "目标方向" if student_type == "college" else "方向 / 申请年级" }}</th><th>备注</th><th>优先级</th><th>最近更新</th><th>操作</th></tr></thead>
   <tbody>{% for student in rows %}
-    <tr><td><a href="/students/{{ student.id }}">{{ student.name }}</a></td><td>{{ student.grade }}</td><td>{{ student.target_school }}</td><td>{{ student.target_major }}</td><td>{{ student.notes }}</td><td><form method="post" action="/students/{{ student.id }}/priority" {% if student.priority_level == '中' and student.priority_direction != 'down' %}data-priority-prompt="true"{% endif %}><input type="hidden" name="next" value="{{ request.url.path }}{% if request.url.query %}?{{ request.url.query }}{% endif %}"><input type="hidden" name="note"><button class="status-button">{{ ui.status_badge(student.priority_level) }}</button></form></td><td>{{ student.updated_at.strftime('%Y-%m-%d') if student.updated_at else '-' }}</td><td class="actions"><a href="/students/{{ student.id }}">查看</a><a href="/students/{{ student.id }}/edit">编辑</a>{% if request.state.user.role == "admin" %}<a class="danger-link" href="/students/{{ student.id }}/archive-delete">删除</a>{% endif %}</td></tr>
-  {% else %}<tr><td colspan="8" class="empty">没有匹配学生</td></tr>{% endfor %}</tbody>
+    <tr><td><a href="/students/{{ student.id }}">{{ student.name }}</a></td><td>{{ student.enrollment_year if student.student_type == "school" else student.grade }}</td><td>{{ schemas.STUDENT_TYPES[student.student_type] }}</td><td>{{ student.current_school if student.student_type == "school" else student.target_school }}</td><td>{{ student.applying_grade if student.student_type == "school" else student.target_major }}</td><td>{{ student.notes }}</td><td><form method="post" action="/students/{{ student.id }}/priority" {% if student.priority_level == '中' and student.priority_direction != 'down' %}data-priority-prompt="true"{% endif %}><input type="hidden" name="next" value="{{ request.url.path }}{% if request.url.query %}?{{ request.url.query }}{% endif %}"><input type="hidden" name="note"><button class="status-button">{{ ui.status_badge(student.priority_level) }}</button></form></td><td>{{ student.updated_at.strftime('%Y-%m-%d') if student.updated_at else '-' }}</td><td class="actions"><a href="/students/{{ student.id }}">查看</a><a href="/students/{{ student.id }}/edit">编辑</a>{% if request.state.user.role == "admin" %}<a class="danger-link" href="/students/{{ student.id }}/archive-delete">删除</a>{% endif %}</td></tr>
+  {% else %}<tr><td colspan="9" class="empty">没有匹配学生</td></tr>{% endfor %}</tbody>
 </table></section>
 {% endblock %}

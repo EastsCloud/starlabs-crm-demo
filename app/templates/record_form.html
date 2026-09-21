@@ -36,13 +36,24 @@
     <label data-exam-for="TOEFL">Appointment No.<input name="appointment_number" value="{{ item.appointment_number if item else '' }}"></label>
     <label data-exam-for="SAT">SAT Record Location<input name="record_locator" value="{{ item.record_locator if item else '' }}"></label>
     <label data-exam-for="AP">AP 科目<input name="subject" value="{{ item.subject if item else '' }}"></label>
-    <label data-exam-for="TOEFL SAT ACT AP">总分<input name="total" value="{{ item.total if item else '' }}"></label>
-    <div class="form-section-title" data-exam-for="TOEFL SAT ACT">分项分数</div>
-    <label data-exam-for="TOEFL SAT ACT"><span data-reading-label>R</span><input name="reading" value="{{ item.reading if item else '' }}"></label>
-    <label data-exam-for="TOEFL">L<input name="listening" value="{{ item.listening if item else '' }}"></label><label data-exam-for="TOEFL">S<input name="speaking" value="{{ item.speaking if item else '' }}"></label>
-    <label data-exam-for="TOEFL ACT">W<input name="writing" value="{{ item.writing if item else '' }}"></label><label data-exam-for="SAT ACT"><span data-math-label>Math</span><input name="math" value="{{ item.math if item else '' }}"></label>
+    <label data-exam-for="TOEFL|SAT|ACT|AP|TOEFL JUNIOR|SSAT">总分<input name="total" value="{{ item.total if item else '' }}"></label>
+    <div class="form-section-title" data-exam-for="TOEFL|SAT|ACT|TOEFL JUNIOR|SSAT">分项分数</div>
+    <label data-exam-for="TOEFL|SAT|ACT|TOEFL JUNIOR"><span data-reading-label>R</span><input name="reading" value="{{ item.reading if item else '' }}"></label>
+    <label data-exam-for="TOEFL|TOEFL JUNIOR"><span data-listening-label>L</span><input name="listening" value="{{ item.listening if item else '' }}"></label><label data-exam-for="TOEFL">S<input name="speaking" value="{{ item.speaking if item else '' }}"></label>
+    <label data-exam-for="TOEFL|ACT">W<input name="writing" value="{{ item.writing if item else '' }}"></label><label data-exam-for="SAT|ACT"><span data-math-label>Math</span><input name="math" value="{{ item.math if item else '' }}"></label>
     <label data-exam-for="ACT">S<input name="science" value="{{ item.science if item else '' }}"></label><label data-exam-for="ACT">E<input name="english" value="{{ item.english if item else '' }}"></label>
+    <label data-exam-for="TOEFL JUNIOR">Language<input name="language" value="{{ item.language if item else '' }}"></label>
+    <label data-exam-for="SSAT">V<input name="verbal" value="{{ item.verbal if item else '' }}"></label>
+    <label data-exam-for="SSAT">Q<input name="quantitative" value="{{ item.quantitative if item else '' }}"></label>
+    <label data-exam-for="SSAT">A<input name="analytical" value="{{ item.analytical if item else '' }}"></label>
   {% endif %}
   <div class="form-actions"><button class="button primary" type="submit">保存</button></div>
 </form></section>
+{% if type == 'application' and is_new %}<script>
+const schoolIds = {{ students|selectattr('student_type', 'equalto', 'school')|map(attribute='id')|list|tojson }};
+const applicationStudent = document.querySelector('[name="student_id"]');
+applicationStudent.addEventListener('change', function () {
+  if (schoolIds.includes(Number(this.value))) window.location.href = '/students/' + this.value + '/school-records/applications/new';
+});
+</script>{% endif %}
 {% endblock %}

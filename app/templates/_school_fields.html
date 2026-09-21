@@ -1,0 +1,18 @@
+{% macro inputs(fields, item) %}
+{% for field in fields %}
+  {% set value = (item|attr(field.name) if item else '') or '' %}
+  <label class="{{ 'wide' if field.kind == 'textarea' else '' }}">{{ field.label }}
+    {% if field.kind == 'textarea' %}<textarea name="{{ field.name }}" rows="3" maxlength="{{ field.limit }}" {% if field.required %}required{% endif %}>{{ value }}</textarea>
+    {% elif field.kind == 'select' %}<select name="{{ field.name }}" {% if field.required %}required{% endif %}><option value="">请选择</option>{% for option in field.options %}<option value="{{ option }}" {% if option == value %}selected{% endif %}>{{ option }}</option>{% endfor %}</select>
+    {% else %}<input type="{{ field.kind }}" name="{{ field.name }}" value="{{ value }}" maxlength="{{ field.limit }}" {% if field.required %}required{% endif %} {% if field.kind == 'password' %}autocomplete="new-password"{% endif %}>{% endif %}
+  </label>
+{% endfor %}
+{% endmacro %}
+
+{% macro information(fields, item, show_private=true) %}
+<div class="info-grid">
+{% for field in fields if show_private or not field.private %}
+  <div><span>{{ field.label }}</span>{% if field.kind == 'password' and item|attr(field.name) %}<details class="credential-details"><summary>显示密码</summary><strong>{{ item|attr(field.name) }}</strong></details>{% else %}<strong>{{ item|attr(field.name) or '-' }}</strong>{% endif %}</div>
+{% endfor %}
+</div>
+{% endmacro %}

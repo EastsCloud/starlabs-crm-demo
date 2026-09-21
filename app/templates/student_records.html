@@ -1,10 +1,14 @@
 {% extends "base.html" %}
 {% import "_controls.html" as ui %}
 {% import "_application_rows.html" as application_ui with context %}
+{% import "_school_records.html" as school_records %}
 {% set labels = {'applications':'申请信息','courses':'选课信息','exams':'标化记录'} %}
 {% block title %}{{ student.name }} · {{ labels[record_type] }}{% endblock %}
 {% block content %}
 <div class="page-head"><div><h1>{{ student.name }} · {{ labels[record_type] }}</h1></div><div class="head-actions"><a class="button primary" href="/{{ record_type }}/new?student_id={{ student.id }}&next=/students/{{ student.id }}/{{ record_type }}">新增</a><button class="button ghost" type="button" data-history-back data-fallback="/students/{{ student.id }}">返回</button></div></div>
+{% if record_type == 'applications' and student.student_type == 'school' %}
+{{ school_records.panel(student, 'applications', '申请信息', school_fields.APPLICATION_FIELDS, rows) }}
+{% else %}
 <section class="panel"><table class="{{ 'application-table' if record_type == 'applications' else '' }}"><thead>{% if record_type == 'applications' %}<tr><th>学校</th><th>国家</th><th>批次</th><th>状态</th><th>截止时间</th><th>网申情况</th><th>Portal情况</th><th>标化递送</th><th>操作</th></tr>{% elif record_type == 'courses' %}<tr><th>学期</th><th>课程分类</th><th>名称</th><th>等级</th><th>成绩</th><th>学分</th><th>操作</th></tr>{% else %}<tr><th>名称</th><th>日期</th><th>详细信息</th><th>总分</th><th>分项分数</th><th>操作</th></tr>{% endif %}</thead><tbody>
 {% if record_type == 'applications' %}
   {{ application_ui.rows(student, '/students/' ~ student.id ~ '/applications') }}
@@ -14,4 +18,5 @@
     {% else %}<tr><td>{{ item.exam_name }}</td><td>{{ item.exam_date.strftime('%Y-%m-%d') if item.exam_date else '-' }}</td><td>{{ exam_detail(item) }}</td><td>{{ item.total or item.score or '-' }}</td><td>{{ exam_component_scores(item) }}</td><td class="actions"><a href="/exams/{{ item.id }}/edit?next=/students/{{ student.id }}/exams">编辑</a><form method="post" action="/exams/{{ item.id }}/delete" data-confirm="确认删除标化记录？"><input type="hidden" name="next" value="/students/{{ student.id }}/exams"><button>删除</button></form></td></tr>{% endif %}
   {% else %}<tr><td colspan="7" class="empty">暂无{{ labels[record_type] }}</td></tr>{% endfor %}
 {% endif %}</tbody></table></section>
+{% endif %}
 {% endblock %}

@@ -1,0 +1,20 @@
+{% import "_school_fields.html" as fields_ui %}
+{% import "_controls.html" as ui %}
+{% macro panel(student, kind, title, fields, rows, readonly=false) %}
+<section class="panel" id="{{ kind }}">
+  <div class="section-head"><h2>{{ title }}</h2>{% if not readonly %}<a class="button" href="/students/{{ student.id }}/school-records/{{ kind }}/new">新增</a>{% endif %}</div>
+  {% if kind == 'applications' %}
+  <div class="table-scroll"><table><thead><tr><th>申请学校</th><th>所在州</th><th>申请年级</th><th>截止日期</th><th>申请状态</th><th>申请结果</th>{% if not readonly %}<th>操作</th>{% endif %}</tr></thead><tbody>
+  {% for item in rows %}
+    <tr><td>{{ item.program_name }}</td><td>{{ item.school_state or '-' }}</td><td>{{ item.applying_grade or '-' }}</td><td>{{ item.deadline or '-' }}</td><td>{{ ui.status_badge(item.status) }}</td><td>{{ item.result or '-' }}</td>{% if not readonly %}<td class="actions"><a href="/students/{{ student.id }}/school-records/{{ kind }}/{{ item.id }}/edit">编辑</a><form method="post" action="/students/{{ student.id }}/school-records/{{ kind }}/{{ item.id }}/delete" data-confirm="确认删除这条申请信息？"><button>删除</button></form></td>{% endif %}</tr>
+    <tr><td colspan="{{ 6 if readonly else 7 }}"><details class="record-details"><summary>查看申请详情 · {{ item.program_name }}</summary>{{ fields_ui.information(fields, item, not readonly) }}</details></td></tr>
+  {% else %}<tr><td colspan="{{ 6 if readonly else 7 }}" class="empty">暂无申请信息</td></tr>{% endfor %}
+  </tbody></table></div>
+  {% else %}
+  <div class="table-scroll"><table><thead><tr>{% for field in fields %}<th>{{ field.label }}</th>{% endfor %}{% if not readonly %}<th>操作</th>{% endif %}</tr></thead><tbody>
+  {% for item in rows %}<tr>{% for field in fields %}<td class="record-text">{{ item|attr(field.name) or '-' }}</td>{% endfor %}{% if not readonly %}<td class="actions"><a href="/students/{{ student.id }}/school-records/{{ kind }}/{{ item.id }}/edit">编辑</a><form method="post" action="/students/{{ student.id }}/school-records/{{ kind }}/{{ item.id }}/delete" data-confirm="确认删除这条{{ title }}？"><button>删除</button></form></td>{% endif %}</tr>
+  {% else %}<tr><td colspan="{{ fields|length + (0 if readonly else 1) }}" class="empty">暂无{{ title }}</td></tr>{% endfor %}
+  </tbody></table></div>
+  {% endif %}
+</section>
+{% endmacro %}

@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}申请管理系统{% endblock %}</title>
-  <link rel="stylesheet" href="{{ url_for('static', path='/style.css') }}?v=20260906">
+  <link rel="stylesheet" href="{{ url_for('static', path='/style.css') }}?v=20260920b">
 </head>
 <body>
   <aside class="sidebar">
@@ -18,7 +18,10 @@
       <a href="/important-items">重要事项</a>
       <a href="/statistics">数据统计</a>
       <a href="/timeline">时间线</a>
-      <a href="/students">学生</a>
+      <details class="student-nav">
+        <summary><span>全部学生</span><span class="nav-chevron" aria-hidden="true">›</span></summary>
+        <div class="subnav"><a href="/students">全部学生列表</a><a href="/students?student_type=school">美初美高学生</a><a href="/students?student_type=college">美本学生</a></div>
+      </details>
       <a href="/tasks">任务</a>
       <a href="/data-engine">公开取数引擎</a>
       <a href="/import">导入学生</a>
@@ -33,8 +36,9 @@
   {% include "_session_timeout.html" %}
   <script>
     const timeNodes = {{ schemas.TIME_NODES | tojson }};
+    const schoolStudentIds = {{ students|selectattr("student_type", "equalto", "school")|map(attribute="id")|list|tojson }};
     const studentGrades = {
-      {% for student in students %}"{{ student.id }}": "{{ student.grade }}"{% if not loop.last %},{% endif %}{% endfor %}
+      {% for student in students %}"{{ student.id }}": {{ student.grade|tojson }}{% if not loop.last %},{% endif %}{% endfor %}
     };
     function inferNode(gradeText, value) {
       if (!value) return "未添加时间信息";
@@ -86,10 +90,12 @@
       if (!dateInput || !nodeSelect) return;
       dateInput.addEventListener("change", function () {
         const grade = studentSelect ? studentGrades[studentSelect.value] : "";
-        nodeSelect.value = inferNode(grade, dateInput.value);
+        if (schoolStudentIds.includes(Number(studentSelect && studentSelect.value))) return;
+        if (!nodeSelect.value || nodeSelect.value === "未添加时间信息") nodeSelect.value = inferNode(grade, dateInput.value);
       });
       nodeSelect.addEventListener("change", function () {
         const grade = studentSelect ? studentGrades[studentSelect.value] : "";
+        if (schoolStudentIds.includes(Number(studentSelect && studentSelect.value))) return;
         const value = nodeStartDate(grade, nodeSelect.value);
         if (value && !dateInput.value) dateInput.value = value;
       });
@@ -147,9 +153,10 @@
       const updateExamFields = () => {
         const name = selector.value.toUpperCase();
         selector.closest("form").querySelectorAll("[data-exam-for]").forEach(function (field) {
-          field.hidden = !field.dataset.examFor.split(" ").includes(name);
+          field.hidden = !field.dataset.examFor.split("|").includes(name);
         });
-        selector.closest("form").querySelectorAll("[data-reading-label]").forEach(label => label.textContent = name === "SAT" ? "R&W" : "R");
+        selector.closest("form").querySelectorAll("[data-reading-label]").forEach(label => label.textContent = name === "SAT" ? "R&W" : (name === "TOEFL JUNIOR" ? "Reading" : "R"));
+        selector.closest("form").querySelectorAll("[data-listening-label]").forEach(label => label.textContent = name === "TOEFL JUNIOR" ? "Listening" : "L");
         selector.closest("form").querySelectorAll("[data-math-label]").forEach(label => label.textContent = name === "ACT" ? "M" : "Math");
       };
       selector.addEventListener("change", updateExamFields);
